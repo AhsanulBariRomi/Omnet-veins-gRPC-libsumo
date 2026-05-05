@@ -1,0 +1,3 @@
+/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build/CMakeFiles/server.dir
+/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build/CMakeFiles/edit_cache.dir
+/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build/CMakeFiles/rebuild_cache.dir

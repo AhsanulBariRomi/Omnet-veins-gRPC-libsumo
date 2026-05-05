@@ -1,0 +1,134 @@
+================================================================================
+================================== CODE ========================================
+================================================================================
+
+📁 Thesis-veins-with-gRPC/       <-- our main VS Code workspace
+│
+├── 📁 grpc_proto/               <-- our .proto files
+├── 📁 sumo_grpc_server/         <-- our new standalone C++ Server
+│
+└── 📁 veins/                    <-- THIS IS THE FULL VEINS-MASTER FOLDER
+    ├── 📁 examples/             <-- (we click Run here)
+    │   └── 📁 veins/
+    │       └── omnetpp.ini      
+    │
+    └── 📁 src/                  <-- (we write our gRPC code here!)
+    └── 📁 src/                  <-- (we write our gRPC code here!)
+        └── 📁 veins/modules/mobility/traci/
+            ├── TraCIScenarioManager.h
+            └── TraCIScenarioManager.cc
+			
+================================================================================
+================================== RUN =========================================
+================================================================================
+Step1. Open the WSL/Ubuntu terminal. and go to the root folder.
+
+	>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC"
+	
+	
+Step2. Compile the Blueprints (the proto file)
+
+	>> cd grpc_proto
+	>> protoc --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=$(which grpc_cpp_plugin) sumo_cosimulation.proto
+	>> cp sumo_cosimulation*.h sumo_cosimulation*.cc ../sumo_grpc_server/
+	>> cp sumo_cosimulation*.h sumo_cosimulation*.cc ../veins/src/veins/modules/mobility/traci/
+	>> cd ..
+	
+
+Step3. Build the server 
+	
+	i) First we created the CMakeLists.txt
+	
+	for that we need the libsumo. To find the libsumo =>> /home/mdahsanulbari/sumo/src/libsumo/Simulation.h
+	also any file or library having the name sumo in it =>> find /usr /home -type f \( -name "*sumo*.so*" -o -name "*sumo*.a" \) 2>/dev/null
+	
+	ii) Command in the WSL/Ubuntu
+	
+	>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build"
+    >> cmake ..
+	>> make -j$(nproc)
+	
+	
+Step4. Configure and Compile OMNeT++ & Veins (Linux/WSL)
+   Since we added our gRPC code to TraCIScenarioManager.cc and copied the .pb.cc files into Veins, we need OMNeT++ to recompile the libveins.so framework.
+   
+   OMNeT++ commands (like opp_makemake, opp_run, etc.) are not permanently installed into our Linux system by default. Every time we open a fresh terminal, we have to "activate" the OMNeT++ environment first.
+   
+   Find your OMNeT++ Folder >> find /home /opt /usr/local /mnt/f -name "opp_makemake" 2>/dev/null
+   
+    4.1 Install Linux Dependencies
+	   OMNeT++ requires specific C++ build tools and Python virtual environment packages.
+	   
+		>> sudo apt-get update
+		>> sudo apt-get install bison flex libxml2-dev zlib1g-dev python3-pip python3-venv -y
+		
+	4.2 Setup OMNeT++ Python Environment
+
+		>> cd "/mnt/f/Omnet/omnetpp-6.2.0"
+		>> python3 -m venv .venv
+		>> source .venv/bin/activate
+		>> python3 -m pip install -r python/requirements.txt
+
+	4.3 Configure OMNeT++ for Headless (CLI) Mode
+		Open /mnt/f/Omnet/omnetpp-6.2.0/configure.user in VS Code and change the following flags to no to disable the heavy graphical interfaces:
+		WITH_QTENV=no
+		WITH_OSG=no
+		WITH_OSGEARTH=no
+		
+	4.4 Build OMNeT++
+		>> cd "/mnt/f/Omnet/omnetpp-6.2.0"
+		>> ./configure
+		>> make -j$(nproc)
+		
+	4.5 Link gRPC to the Veins Build System
+		We must tell Veins to include the gRPC and Protobuf libraries during compilation.
+		
+		>> echo 'EXTRA_LIBS += -lgrpc++ -lprotobuf -lgrpc++_reflection' >> "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/src/makefrag"
+		>> echo 'LDFLAGS += -lgrpc++ -lprotobuf -lgrpc++_reflection' >> "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/src/makefrag"
+		
+	4.6 Build the Modified Veins Framework
+	
+		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins"
+		>> make clean
+		>> ./configure
+		>> make -j$(nproc)
+
+
+Step5. The final test - THe dual terminal Test
+
+	Terminal 3: The Legacy Dummy Server (Python)
+		Purpose: Keeps Veins happy during the t=0 setup phase.
+		
+		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins"
+		>> python3 sumo-launchd.py -vv -c /home/mdahsanulbari/sumo/bin/sumo
+
+	Terminal 2: The Custom gRPC Server (C++)
+		Purpose: Runs the actual SUMO simulation and feeds data via gRPC.
+		
+		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
+		>> "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build/server"
+
+	Terminal 1: The OMNeT++ Client
+		Purpose: Executes the Veins simulation and requests steps from your gRPC server.
+		
+		# 1. Wake up OMNeT++ and the Python environment
+		>> cd "/mnt/f/Omnet/omnetpp-6.2.0"
+		>> source .venv/bin/activate
+		>> source setenv
+		
+		# 2. Launch the simulation
+		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
+		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini (OR ./run -u Cmdenv -r 0)
+
+Expected Result: Terminal 3 will print >>>> FORCING gRPC CONNECTION <<<<, and Terminal 2 will immediately begin printing the "Step Requested" logs all the way up to the simulation limit of 200s.
+
+****************************************
+./run -u Cmdenv -c WithBeaconing -r 0
+****************************************
+
+
+
+
+
+
+

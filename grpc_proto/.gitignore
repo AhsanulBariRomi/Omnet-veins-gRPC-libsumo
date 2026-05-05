@@ -1,0 +1,33 @@
+# ---------------------------------------------------
+# VS Code / IDE
+# ---------------------------------------------------
+.vscode/
+
+# ---------------------------------------------------
+# gRPC / C++ Build Artifacts
+# ---------------------------------------------------
+*.o
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+# Ignore build folders but keep the empty folder structure if needed
+sumo_grpc_server/build/
+sumo_grpc_server/bin/
+
+# ---------------------------------------------------
+# Protobuf / gRPC Generated Files 
+# (You compile these from the .proto, so don't track them)
+# ---------------------------------------------------
+*.pb.cc
+*.pb.h
+
+# ---------------------------------------------------
+# OMNeT++ / Veins Specific Build Junk
+# ---------------------------------------------------
+out/
+Makefile
+makefrag
+veins/src/veins/modules/messages/*_m.cc
+veins/src/veins/modules/messages/*_m.h

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package veinsthesis;
+
+// This is the OMNeT++ Request -> asking SUMO to step forward
+message StepRequest {
+  double target_time = 1;
+}
+
+// The Blueprint (TraCI used to subscribe) -> 8 variables for a single car
+message VehicleState {
+  string vehicle_id = 1;
+  double position_x = 2;
+  double position_y = 3;
+  double speed = 4;
+  double angle = 5;
+  string road_id = 6;
+  double length = 7;
+  double width = 8;
+}
+
+// The response -> Master list of all cars
+message StepResponse {
+  repeated VehicleState vehicles = 1;
+}
+
+// The gRPC Service
+service SumoCosimulation {
+  rpc ExecuteStep (StepRequest) returns (StepResponse);
+}

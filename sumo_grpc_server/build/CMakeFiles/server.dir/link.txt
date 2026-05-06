@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/server.dir/main.cc.o CMakeFiles/server.dir/sumo_cosimulation.pb.cc.o CMakeFiles/server.dir/sumo_cosimulation.grpc.pb.cc.o -o server   -L/home/mdahsanulbari/sumo/bin  -Wl,-rpath,/home/mdahsanulbari/sumo/bin -lgrpc++ -lgrpc++_reflection -lprotobuf -lsumocpp 

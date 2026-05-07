@@ -22,12 +22,16 @@ using veinsthesis::VehicleState;
 class SumoServiceImpl final : public SumoCosimulation::Service {
     // This is the overrriden gRPC method that will be called by the client (our TraCIScenarioManager in Veins)
     Status ExecuteStep(ServerContext* context, const StepRequest* request, StepResponse* response) override {
-        std::cout << "Step Requested for target time: " << request->target_time() << "s" << std::endl;
+
+        //std::cout << "Step Requested for target time: " << request->target_time() << "s" << std::endl;
+        
         // 1. STEP THE PHYSICS (Direct memory call, no TCP!)
         libsumo::Simulation::step(request->target_time());
 
         // 2. GET ALL VEHICLES
         std::vector<std::string> vehicleIds = libsumo::Vehicle::getIDList();
+
+        std::cout << "Step " << request->target_time() << "s || Cars in SUMO: " << vehicleIds.size() << std::endl;
 
         // 3. PACK THE BOX
         for (const std::string& vId : vehicleIds) {

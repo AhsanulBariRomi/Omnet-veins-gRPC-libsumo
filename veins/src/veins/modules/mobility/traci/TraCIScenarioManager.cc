@@ -712,8 +712,27 @@ void TraCIScenarioManager::executeOneTimestep()
 
         // 4. Process the Bulk Data
         if (status.ok()) {
+            // 4a. Track which cars are actively driving right now
+            std::set<std::string> activeSumoVehicles;
+
+            int printCount = 0;
+
             for (const auto& vehicle : response.vehicles()) {
                 std::string vId = vehicle.vehicle_id();
+                activeSumoVehicles.insert(vId); // Mark this car as active!
+
+                // Only printing the fields for the first 2 vehicles in the list to keep the terminal clean
+                if (printCount < 2) {
+                    std::cout << " *** [Data Check] Car " << vId 
+                              << " | X: " << vehicle.position_x() 
+                              << " | Y: " << vehicle.position_y() 
+                              << " | Speed: " << vehicle.speed() << " m/s"
+                              << " | Angle: " << vehicle.angle() << "°"
+                              << " | Road: " << vehicle.road_id()
+                              << " | Length: " << vehicle.length() << " m"
+                              << " | Width: " << vehicle.width() << " m" << std::endl;
+                    printCount++; // Increase the counter so we stop at 2!
+                }
                 
                 // Translate SUMO coordinates to OMNeT++ map coordinates
                 Coord p = connection->traci2omnet(TraCICoord(vehicle.position_x(), vehicle.position_y()));
@@ -723,7 +742,6 @@ void TraCIScenarioManager::executeOneTimestep()
                 
                 if (!mod) {
                     // Car doesn't exist in OMNeT++ yet, spawn it!
-                    // (Note: To keep this simple, we pass default values for vehicle type/name/etc)
                     std::string mType = moduleType["*"];
                     std::string mName = moduleName["*"];
                     addModule(vId, mType, mName, "", p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0), vehicle.length(), vehicle.width(), 0);
@@ -733,8 +751,28 @@ void TraCIScenarioManager::executeOneTimestep()
                     emit(traciModuleUpdatedSignal, mod);
                 }
             }
+
+            // 4b. GARBAGE COLLECTION: Remove Ghost Cars
+            // Find cars that are in OMNeT++ but missing from the SUMO message
+            std::vector<std::string> vehiclesToRemove;
+            for (auto const& [vId, mod] : hosts) {
+                if (activeSumoVehicles.find(vId) == activeSumoVehicles.end()) {
+                    // This car arrived at its destination! Queue it for deletion.
+                    vehiclesToRemove.push_back(vId);
+                }
+            }
+            
+            // Delete them from the OMNeT++ map
+            for (const std::string& vId : vehiclesToRemove) {
+                deleteManagedModule(vId);
+            }
+
+            // 4c. Print the true count with the Step Time!
+            std::cout << "✅ Step " << targetTime.dbl() << "s | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
+            std::cout << "\n";
         } else {
-            EV_ERROR << "gRPC step failed: " << status.error_message() << endl;
+            //EV_ERROR << "gRPC step failed: " << status.error_message() << endl;
+            std::cerr << "❌ Step " << targetTime.dbl() << "s | gRPC step failed: " << status.error_message() << std::endl;
         }
     }
 

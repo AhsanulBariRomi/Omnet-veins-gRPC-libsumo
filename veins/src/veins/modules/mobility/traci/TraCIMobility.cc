@@ -134,14 +134,24 @@ void TraCIMobility::finish()
 
 void TraCIMobility::handleSelfMsg(cMessage* msg)
 {
+    // Grab the pointer safely
+    auto* traciVehicle = getVehicleCommandInterface();
+
     if (msg == startAccidentMsg) {
-        getVehicleCommandInterface()->setSpeed(0);
+        //getVehicleCommandInterface()->setSpeed(0);
+        // SAFETY CHECK: Only send the command if the remote control exists!
+        if (traciVehicle) {
+            traciVehicle->setSpeed(0);
+        }
         simtime_t accidentDuration = par("accidentDuration");
         scheduleAt(simTime() + accidentDuration, stopAccidentMsg);
         accidentCount--;
     }
     else if (msg == stopAccidentMsg) {
-        getVehicleCommandInterface()->setSpeed(-1);
+        //getVehicleCommandInterface()->setSpeed(-1);
+        if (traciVehicle) {
+            traciVehicle->setSpeed(-1);
+        }
         if (accidentCount > 0) {
             simtime_t accidentInterval = par("accidentInterval");
             scheduleAt(simTime() + accidentInterval, startAccidentMsg);

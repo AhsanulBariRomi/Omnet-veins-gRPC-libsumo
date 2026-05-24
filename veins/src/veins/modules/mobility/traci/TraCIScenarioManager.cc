@@ -517,15 +517,19 @@ void TraCIScenarioManager::handleMessage(cMessage* msg)
 void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
 {
     if (msg == connectAndStartTrigger) {
-        connection.reset(TraCIConnection::connect(this, host.c_str(), port));
+        //connection.reset(TraCIConnection::connect(this, host.c_str(), port));
         ///////////////////////////////////////////////////////////////////////////
         // // Initialize the gRPC Channel to talk to the Server // // // // // //
         std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
         stub_ = veinsthesis::SumoCosimulation::NewStub(channel);
-        EV_INFO << "gRPC Client Connected to SUMO Server!" << std::endl;
+        std::cout << "\n✅ gRPC Client Connected directly! Python Dummy Server is DEAD.\n" << std::endl;
         ///////////////////////////////////////////////////////////////////////////
-        commandIfc.reset(new TraCICommandInterface(this, *connection, ignoreGuiCommands));
-        init_traci();
+        //commandIfc.reset(new TraCICommandInterface(this, *connection, ignoreGuiCommands));
+        //init_traci();
+        // **FAKE THE INITIALIZATION SIGNAL**
+        // We do NOT call init_traci() anymore. We just tell OMNeT++ it's ready.
+        traciInitialized = true;
+        emit(traciInitializedSignal, true);
         return;
     }
     if (msg == executeOneTimestepTrigger) {
@@ -682,6 +686,23 @@ void TraCIScenarioManager::deleteManagedModule(std::string nodeId)
 
 //     if (!autoShutdownTriggered) scheduleAt(simTime() + updateInterval, executeOneTimestepTrigger);
 // }
+/**
+ * @brief Executes a single simulation timestep using gRPC instead of legacy TraCI.
+ * 
+ * This function handles the periodic synchronization between OMNeT++ and the external 
+ * SUMO simulation. It has been rewritten to replace the standard TraCI socket communication
+ * with a modern gRPC-based architecture. 
+ * 
+ * Key workflow:
+ * 1. Establishes a gRPC channel to the server if one does not already exist.
+ * 2. Sends a StepRequest containing the current OMNeT++ simulation target time.
+ * 3. Receives a StepResponse containing bulk data of all active vehicles in SUMO.
+ * 4. Processes the response to synchronize the OMNeT++ environment:
+ *    - Updates positions and headings for existing vehicles.
+ *    - Spawns new vehicles in OMNeT++ that have entered the SUMO simulation.
+ *    - Performs garbage collection by removing "ghost" vehicles from OMNeT++ 
+ *      that have exited the SUMO simulation.
+ */
 void TraCIScenarioManager::executeOneTimestep()
 {
     // --- FORCE GRPC CONNECTION IF NOT CONNECTED ---
@@ -698,7 +719,8 @@ void TraCIScenarioManager::executeOneTimestep()
     simtime_t targetTime = simTime();
     emit(traciTimestepBeginSignal, targetTime);
 
-    if (isConnected() && stub_) {
+    //if (isConnected() && stub_) {
+    if (stub_) {
         // 1. Prepare the gRPC Request
         veinsthesis::StepRequest request;
         request.set_target_time(targetTime.dbl());
@@ -735,8 +757,16 @@ void TraCIScenarioManager::executeOneTimestep()
                 }
                 
                 // Translate SUMO coordinates to OMNeT++ map coordinates
-                Coord p = connection->traci2omnet(TraCICoord(vehicle.position_x(), vehicle.position_y()));
-                Heading heading = connection->traci2omnetHeading(vehicle.angle());
+                //Coord p = connection->traci2omnet(TraCICoord(vehicle.position_x(), vehicle.position_y()));
+                //Heading heading = connection->traci2omnetHeading(vehicle.angle());
+
+                // 1. Define the Erlangen UTM Offsets
+                double mapOffsetX = 644000.0;
+                double mapOffsetY = 5490000.0;
+
+                // 2. Translate SUMO coordinates manually to fit on the OMNeT++ screen!
+                Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
+                Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
                 
                 cModule* mod = getManagedModule(vId);
                 

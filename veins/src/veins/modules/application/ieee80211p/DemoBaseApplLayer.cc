@@ -33,8 +33,13 @@ void DemoBaseApplLayer::initialize(int stage)
         // initialize pointers to other modules
         if (FindModule<TraCIMobility*>::findSubModule(getParentModule())) {
             mobility = TraCIMobilityAccess().get(getParentModule());
-            traci = mobility->getCommandInterface();
-            traciVehicle = mobility->getVehicleCommandInterface();
+            //traci = mobility->getCommandInterface();
+            //traciVehicle = mobility->getVehicleCommandInterface();
+            // ---> GRPC THESIS SURGERY <---
+            // The TCP connection is dead, so we explicitly set the reverse-command 
+            // pointers to null so OMNeT++ doesn't crash trying to use them inline!
+            traci = nullptr;
+            traciVehicle = nullptr;
         }
         else {
             traci = nullptr;

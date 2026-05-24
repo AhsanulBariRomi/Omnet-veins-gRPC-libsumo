@@ -150,7 +150,15 @@ public:
     }
     virtual TraCICommandInterface::Vehicle* getVehicleCommandInterface() const
     {
-        if (!vehicleCommandInterface) vehicleCommandInterface = new TraCICommandInterface::Vehicle(getCommandInterface()->vehicle(getExternalId()));
+        // SAFETY CHECK FOR GRPC: If there is no TCP remote control, return null!
+        if (!getCommandInterface()) {
+            return nullptr;
+        }
+        //if (!vehicleCommandInterface) vehicleCommandInterface = new TraCICommandInterface::Vehicle(getCommandInterface()->vehicle(getExternalId()));
+        //return vehicleCommandInterface;
+        if (!vehicleCommandInterface) {
+            vehicleCommandInterface = new TraCICommandInterface::Vehicle(getCommandInterface()->vehicle(getExternalId()));
+        }
         return vehicleCommandInterface;
     }
 

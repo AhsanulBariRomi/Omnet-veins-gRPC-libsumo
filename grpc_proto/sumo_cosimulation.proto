@@ -24,7 +24,18 @@ message StepResponse {
   repeated VehicleState vehicles = 1;
 }
 
+// The Request -> Empty because OMNeT++ just wants the global map offsets
+message BoundaryRequest {
+}
+
+// The Response -> SUMO sends back the minimum X and Y of the map
+message BoundaryResponse {
+  double offset_x = 1;
+  double offset_y = 2;
+}
+
 // The gRPC Service
 service SumoCosimulation {
   rpc ExecuteStep (StepRequest) returns (StepResponse);
+  rpc GetNetworkBoundaries (BoundaryRequest) returns (BoundaryResponse);
 }

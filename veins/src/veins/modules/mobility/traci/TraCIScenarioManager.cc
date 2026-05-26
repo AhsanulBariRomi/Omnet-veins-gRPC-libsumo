@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <iterator>
 #include <cstdlib>
+#include <iomanip>
 
 #include "veins/modules/mobility/traci/TraCIScenarioManager.h"
 #include "veins/base/connectionManager/ChannelAccess.h"
@@ -528,6 +529,30 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
         //init_traci();
         // **FAKE THE INITIALIZATION SIGNAL**
         // We do NOT call init_traci() anymore. We just tell OMNeT++ it's ready.
+
+        // ---> GRPC THESIS: FETCH DYNAMIC MAP BOUNDARIES <---
+        // Instead of hardcoding the city offsets or relying on the old Python script,
+        // we ask the C++ gRPC server directly for the bottom-left corner of the loaded map.
+        veinsthesis::BoundaryRequest bReq;
+        veinsthesis::BoundaryResponse bRes;
+        grpc::ClientContext bContext;
+        
+        grpc::Status bStatus = stub_->GetNetworkBoundaries(&bContext, bReq, &bRes);
+        
+        if (bStatus.ok()) {
+            // Save the received offsets into the class memory variables!
+            mapOffsetX = bRes.offset_x();
+            mapOffsetY = bRes.offset_y();
+            // Force C++ to print exact decimals instead of scientific notation!
+            std::cout << std::fixed << std::setprecision(2);
+            std::cout << "📍 Map Offsets received dynamically: X=" << mapOffsetX << ", Y=" << mapOffsetY << std::endl;
+            std::cout << "\n";
+            // Reset it back to default so we don't mess up OMNeT++'s other logs
+            std::cout << std::defaultfloat;
+        } else {
+            std::cerr << "❌ Failed to fetch map boundaries: " << bStatus.error_message() << std::endl;
+        }
+
         traciInitialized = true;
         emit(traciInitializedSignal, true);
         return;
@@ -760,11 +785,18 @@ void TraCIScenarioManager::executeOneTimestep()
                 //Coord p = connection->traci2omnet(TraCICoord(vehicle.position_x(), vehicle.position_y()));
                 //Heading heading = connection->traci2omnetHeading(vehicle.angle());
 
-                // 1. Define the Erlangen UTM Offsets
-                double mapOffsetX = 644000.0;
-                double mapOffsetY = 5490000.0;
+                // // 1. Define the Erlangen UTM Offsets
+                // double mapOffsetX = 644000.0;
+                // double mapOffsetY = 5490000.0;
 
-                // 2. Translate SUMO coordinates manually to fit on the OMNeT++ screen!
+                // // 2. Translate SUMO coordinates manually to fit on the OMNeT++ screen!
+                // Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
+                // Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
+
+                // ---> Step 1&2: GRPC THESIS: DYNAMIC COORDINATE TRANSLATION <---
+                // We subtract the dynamic boundaries we fetched at t=0 from the current car. 
+                // This shifts the massive UTM coordinates down to small numbers that 
+                // fit perfectly inside the OMNeT++ playground window.
                 Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
                 Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
                 

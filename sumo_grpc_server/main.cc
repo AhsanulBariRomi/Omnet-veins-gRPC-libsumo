@@ -18,8 +18,32 @@ using veinsthesis::StepRequest;
 using veinsthesis::StepResponse;
 using veinsthesis::VehicleState;
 
+using veinsthesis::BoundaryRequest;
+using veinsthesis::BoundaryResponse;
+
 // The actual server logic
 class SumoServiceImpl final : public SumoCosimulation::Service {
+
+    Status GetNetworkBoundaries(ServerContext* context, const BoundaryRequest* request, BoundaryResponse* response) override {
+        try {
+            // 1. Ask libsumo for the actual map boundary box
+            // This returns a TraCIPositionVector containing the bottom-left and top-right coordinates
+            auto boundary = libsumo::Simulation::getNetBoundary();
+            
+            // 2. Extract the bottom-left corner (index 0) as our precise offsets
+            response->set_offset_x(boundary.value[0].x);
+            response->set_offset_y(boundary.value[0].y);
+            
+            std::cout << "📍 Sent dynamic Map Boundaries to OMNeT++: X=" << boundary.value[0].x << ", Y=" << boundary.value[0].y << std::endl;
+            std::cout << "\n";
+            return Status::OK;
+            
+        } catch (const std::exception& e) {
+            std::cerr << "❌ Error fetching boundaries: " << e.what() << std::endl;
+            return Status(grpc::StatusCode::INTERNAL, e.what());
+        }
+    }
+
     // This is the overrriden gRPC method that will be called by the client (our TraCIScenarioManager in Veins)
     Status ExecuteStep(ServerContext* context, const StepRequest* request, StepResponse* response) override {
 

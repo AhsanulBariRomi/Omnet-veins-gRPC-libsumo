@@ -131,6 +131,15 @@ public:
 
 protected:
     bool traciInitialized = false; /**< Flag indicating whether the init_traci routine has been run. Note that it will change to false again once set, even during shutdown. */
+
+    // ---> GRPC THESIS: DYNAMIC MAP BOUNDARIES <---
+    // These variables store the minimum X and Y coordinates of the SUMO map.
+    // We fetch them exactly once at t=0 via gRPC. We use them later to shift 
+    // the raw real-world UTM coordinates down to (0,0) so the cars spawn 
+    // inside the OMNeT++ screen instead of millions of meters away.
+    double mapOffsetX = 0.0;
+    double mapOffsetY = 0.0;
+
     simtime_t connectAt; /**< when to connect to TraCI server (must be the initial timestep of the server) */
     simtime_t firstStepAt; /**< when to start synchronizing with the TraCI server (-1: immediately after connecting) */
     simtime_t updateInterval; /**< time interval of hosts' position updates */

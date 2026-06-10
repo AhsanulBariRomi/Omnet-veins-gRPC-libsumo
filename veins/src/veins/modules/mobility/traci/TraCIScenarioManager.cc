@@ -563,7 +563,7 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
         // Create the CSV file in the directory where the simulation is run
         grpcLogFile.open("grpc_physics.csv", std::ios_base::out);
         if (grpcLogFile.is_open()) {
-            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,Speed,Length,Width,Height\n";
+            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,Speed,Length,Width,Height,Signals\n";
             std::cout << "📊 Validation Logger Started: grpc_physics.csv" << std::endl;
         } else {
             std::cerr << "❌ Failed to open grpc_physics.csv for writing!" << std::endl;

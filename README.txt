@@ -88,10 +88,15 @@ Step4. Configure and Compile OMNeT++ & Veins (Linux/WSL)
 		
 	4.6 Build the Modified Veins Framework
 	
+		First Time:
 		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins"
 		>> make clean
 		>> ./configure
 		>> make -j$(nproc)
+		
+		Regular changes:
+		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins"
+		make -j$(nproc)
 
 
 Step5. The final test - THe dual terminal Test
@@ -100,25 +105,27 @@ Step5. The final test - THe dual terminal Test
 		Purpose: Keeps Veins happy during the t=0 setup phase.
 		
 		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins"
-		>> python3 sumo-launchd.py -vv -c /home/mdahsanulbari/sumo/bin/sumo
+		 python3 sumo-launchd.py -vv -c /home/mdahsanulbari/sumo/bin/sumo
 
 	Terminal 2: The Custom gRPC Server (C++)
 		Purpose: Runs the actual SUMO simulation and feeds data via gRPC.
 		
 		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
-		>> "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build/server"
+		 "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build/server"
 
 	Terminal 1: The OMNeT++ Client
 		Purpose: Executes the Veins simulation and requests steps from your gRPC server.
 		
 		# 1. Wake up OMNeT++ and the Python environment
 		>> cd "/mnt/f/Omnet/omnetpp-6.2.0"
-		>> source .venv/bin/activate
-		>> source setenv
+		 source .venv/bin/activate
+		 source setenv
 		
 		# 2. Launch the simulation
 		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
-		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini (OR ./run -u Cmdenv -r 0)
+		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini 
+		
+		(OR ./run -u Cmdenv -r 0)
 
 Expected Result: Terminal 3 will print >>>> FORCING gRPC CONNECTION <<<<, and Terminal 2 will immediately begin printing the "Step Requested" logs all the way up to the simulation limit of 200s.
 
@@ -130,5 +137,82 @@ Expected Result: Terminal 3 will print >>>> FORCING gRPC CONNECTION <<<<, and Te
 
 
 
+===========================================================================================================================================================
+===========================================================================================================================================================
+Step 1: Start the Python Bridge (Terminal 1) - LEGACY SERVER
+>> cd "/mnt/f/VEINS/veins-master"
+   python3 sumo-launchd.py -vv -c sumo
 
+Step 2: Run the Simulation (Terminal 2) - LEGACY CLIENT
 
+# 1. Wake up the compiler tools
+cd "/mnt/f/Omnet/omnetpp-6.2.0"
+source setenv
+
+# 2. Go to the example folder and run the simulation
+cd examples/veins
+opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini
+
+=== === === === === ===
+IF WE'RE DOING ANY CHANGE IN ANY FILE:
+>> cd "/mnt/f/VEINS/veins-master"
+make MODE=release -j$(nproc)
+
+IF IT DOESN'T REFLECT THE CHANGES:
+Step 1: Set up the environment
+
+Bash
+source /mnt/f/Omnet/omnetpp-6.2.0/setenv
+Step 2: Go to the VEINS root directory
+
+Bash
+cd /mnt/f/VEINS/veins-master
+Step 3: Wipe the old cache (Do not skip this)  
+
+Bash
+make clean
+Step 4: Recompile the C++ code
+
+Bash
+make MODE=release -j$(nproc)
+Step 5: Run the simulation
+
+Bash
+cd examples/veins
+opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini
+
+=== === === === === ===
+SUMO INSTALL AND VERSION CHECK
+>> sumo --version
+>> sudo apt update
+sudo apt install sumo sumo-tools sumo-doc
+
+========================================================================================================================================================
+========================================================================================================================================================
+========================================================================================================================================================
+========================================================================================================================================================
+THE GENERATED CSV needs to look identical, to do that 
+1. Click the top-left corner of your Excel sheet to highlight all data.
+2. Go to Data -> Sort.
+3. Sort by Time (Smallest to Largest).
+4. Click Add Level, then sort by VehicleID (A to Z).
+
+========================================================================================================================================================
+========================================================================================================================================================
+========================================================================================================================================================
+========================================================================================================================================================
+TO PLOT THEM WE NEED CERTAIN LIBRARIES OF PYTHON - pandas, matplotlib
+>> python3 --version
+>> python3 -c "import pandas; import matplotlib.pyplot as plt; print('Libraries are installed and ready')"
+
+IF ALL OKAY, LETS PLOT
+>> cd "/mnt/f/4. Academic(MSc)/Thesis/PLOT"
+>> nano plot_validation.py
+>> Right your code there
+
+	Save, Exit, and Run
+		- Press Ctrl+O, then Enter to save.
+		- Press Ctrl+X to exit nano.
+		- Run the script:
+		
+>> python3 plot_validation.py

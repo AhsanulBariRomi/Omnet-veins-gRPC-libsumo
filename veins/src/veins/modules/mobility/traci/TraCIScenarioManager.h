@@ -26,6 +26,7 @@
 #include <memory>
 #include <list>
 #include <queue>
+#include <fstream>
 
 #include "veins/veins.h"
 
@@ -139,6 +140,11 @@ protected:
     // inside the OMNeT++ screen instead of millions of meters away.
     double mapOffsetX = 0.0;
     double mapOffsetY = 0.0;
+
+    // ---> GRPC THESIS: VALIDATION LOGGER <---
+    // We keep this file open during the simulation to avoid massive 
+    // hard drive I/O bottlenecks from opening/closing it every millisecond.
+    std::ofstream grpcLogFile;
 
     simtime_t connectAt; /**< when to connect to TraCI server (must be the initial timestep of the server) */
     simtime_t firstStepAt; /**< when to start synchronizing with the TraCI server (-1: immediately after connecting) */

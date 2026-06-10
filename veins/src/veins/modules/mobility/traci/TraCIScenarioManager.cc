@@ -491,6 +491,12 @@ void TraCIScenarioManager::preNetworkFinish()
 void TraCIScenarioManager::finish()
 {
     recordScalar("roiArea", areaSum);
+
+    // ---> GRPC THESIS: CLOSE VALIDATION LOGGER <---
+    if (grpcLogFile.is_open()) {
+        grpcLogFile.close();
+        std::cout << "💾 Saved validation data to grpc_physics.csv" << std::endl;
+    }
 }
 
 void TraCIScenarioManager::handleMessage(cMessage* msg)
@@ -551,6 +557,16 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
             std::cout << std::defaultfloat;
         } else {
             std::cerr << "❌ Failed to fetch map boundaries: " << bStatus.error_message() << std::endl;
+        }
+
+        // ---> GRPC THESIS: INITIALIZE VALIDATION LOGGER <---
+        // Create the CSV file in the directory where the simulation is run
+        grpcLogFile.open("grpc_physics.csv", std::ios_base::out);
+        if (grpcLogFile.is_open()) {
+            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,Speed\n";
+            std::cout << "📊 Validation Logger Started: grpc_physics.csv" << std::endl;
+        } else {
+            std::cerr << "❌ Failed to open grpc_physics.csv for writing!" << std::endl;
         }
 
         traciInitialized = true;
@@ -769,17 +785,17 @@ void TraCIScenarioManager::executeOneTimestep()
                 activeSumoVehicles.insert(vId); // Mark this car as active!
 
                 // Only printing the fields for the first 2 vehicles in the list to keep the terminal clean
-                if (printCount < 2) {
-                    std::cout << " *** [Data Check] Car " << vId 
-                              << " | X: " << vehicle.position_x() 
-                              << " | Y: " << vehicle.position_y() 
-                              << " | Speed: " << vehicle.speed() << " m/s"
-                              << " | Angle: " << vehicle.angle() << "°"
-                              << " | Road: " << vehicle.road_id()
-                              << " | Length: " << vehicle.length() << " m"
-                              << " | Width: " << vehicle.width() << " m" << std::endl;
-                    printCount++; // Increase the counter so we stop at 2!
-                }
+                // if (printCount < 2) {
+                //     std::cout << " *** [Data Check] Car " << vId 
+                //               << " | X: " << vehicle.position_x() 
+                //               << " | Y: " << vehicle.position_y() 
+                //               << " | Speed: " << vehicle.speed() << " m/s"
+                //               << " | Angle: " << vehicle.angle() << "°"
+                //               << " | Road: " << vehicle.road_id()
+                //               << " | Length: " << vehicle.length() << " m"
+                //               << " | Width: " << vehicle.width() << " m" << std::endl;
+                //     printCount++; // Increase the counter so we stop at 2!
+                // }
                 
                 // Translate SUMO coordinates to OMNeT++ map coordinates
                 //Coord p = connection->traci2omnet(TraCICoord(vehicle.position_x(), vehicle.position_y()));
@@ -800,6 +816,22 @@ void TraCIScenarioManager::executeOneTimestep()
                 Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
                 Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
                 
+                // ---> GRPC THESIS: LOG VEHICLE DATA <---
+                // if (grpcLogFile.is_open()) {
+                //     grpcLogFile << targetTime.dbl() << "," 
+                //                 << vId << "," 
+                //                 << p.x << "," 
+                //                 << p.y << "," 
+                //                 << vehicle.speed() << "\n";
+                // }
+
+                if (grpcLogFile.is_open()) {
+                    grpcLogFile << targetTime.dbl() << "," 
+                                << vId << "," 
+                                << vehicle.position_x() << "," 
+                                << vehicle.position_y() << "," 
+                                << vehicle.speed() << "\n";
+                }
                 cModule* mod = getManagedModule(vId);
                 
                 if (!mod) {

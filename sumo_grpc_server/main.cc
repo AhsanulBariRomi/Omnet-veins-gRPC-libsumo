@@ -74,6 +74,12 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
             state->set_road_id(libsumo::Vehicle::getRoadID(vId));
             state->set_length(libsumo::Vehicle::getLength(vId));
             state->set_width(libsumo::Vehicle::getWidth(vId));
+
+            // LEGACY NOTE: In the old architecture, OMNeT++ had to send separate 
+            // slow TCP requests for these, or hardcode them to 0. Here, we fetch 
+            // them instantly from shared memory.
+            state->set_height(libsumo::Vehicle::getHeight(vId));
+            state->set_signals(libsumo::Vehicle::getSignals(vId));
         }
 
         // 4. SHIP IT BACK

@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <iterator>
 #include <cstdlib>
+#include <iomanip>
 
 #include "veins/modules/mobility/traci/TraCIScenarioManager.h"
 #include "veins/base/connectionManager/ChannelAccess.h"
@@ -490,6 +491,12 @@ void TraCIScenarioManager::preNetworkFinish()
 void TraCIScenarioManager::finish()
 {
     recordScalar("roiArea", areaSum);
+
+    // ---> GRPC THESIS: CLOSE VALIDATION LOGGER <---
+    if (grpcLogFile.is_open()) {
+        grpcLogFile.close();
+        std::cout << "💾 Saved validation data to grpc_physics.csv" << std::endl;
+    }
 }
 
 void TraCIScenarioManager::handleMessage(cMessage* msg)
@@ -517,15 +524,53 @@ void TraCIScenarioManager::handleMessage(cMessage* msg)
 void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
 {
     if (msg == connectAndStartTrigger) {
-        connection.reset(TraCIConnection::connect(this, host.c_str(), port));
+        //connection.reset(TraCIConnection::connect(this, host.c_str(), port));
         ///////////////////////////////////////////////////////////////////////////
         // // Initialize the gRPC Channel to talk to the Server // // // // // //
         std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
         stub_ = veinsthesis::SumoCosimulation::NewStub(channel);
-        EV_INFO << "gRPC Client Connected to SUMO Server!" << std::endl;
+        std::cout << "\n✅ gRPC Client Connected directly! Python Dummy Server is DEAD.\n" << std::endl;
         ///////////////////////////////////////////////////////////////////////////
-        commandIfc.reset(new TraCICommandInterface(this, *connection, ignoreGuiCommands));
-        init_traci();
+        //commandIfc.reset(new TraCICommandInterface(this, *connection, ignoreGuiCommands));
+        //init_traci();
+        // **FAKE THE INITIALIZATION SIGNAL**
+        // We do NOT call init_traci() anymore. We just tell OMNeT++ it's ready.
+
+        // ---> GRPC THESIS: FETCH DYNAMIC MAP BOUNDARIES <---
+        // Instead of hardcoding the city offsets or relying on the old Python script,
+        // we ask the C++ gRPC server directly for the bottom-left corner of the loaded map.
+        veinsthesis::BoundaryRequest bReq;
+        veinsthesis::BoundaryResponse bRes;
+        grpc::ClientContext bContext;
+        
+        grpc::Status bStatus = stub_->GetNetworkBoundaries(&bContext, bReq, &bRes);
+        
+        if (bStatus.ok()) {
+            // Save the received offsets into the class memory variables!
+            mapOffsetX = bRes.offset_x();
+            mapOffsetY = bRes.offset_y();
+            // Force C++ to print exact decimals instead of scientific notation!
+            std::cout << std::fixed << std::setprecision(2);
+            std::cout << "📍 Map Offsets received dynamically: X=" << mapOffsetX << ", Y=" << mapOffsetY << std::endl;
+            std::cout << "\n";
+            // Reset it back to default so we don't mess up OMNeT++'s other logs
+            std::cout << std::defaultfloat;
+        } else {
+            std::cerr << "❌ Failed to fetch map boundaries: " << bStatus.error_message() << std::endl;
+        }
+
+        // ---> GRPC THESIS: INITIALIZE VALIDATION LOGGER <---
+        // Create the CSV file in the directory where the simulation is run
+        grpcLogFile.open("grpc_physics.csv", std::ios_base::out);
+        if (grpcLogFile.is_open()) {
+            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,Speed\n";
+            std::cout << "📊 Validation Logger Started: grpc_physics.csv" << std::endl;
+        } else {
+            std::cerr << "❌ Failed to open grpc_physics.csv for writing!" << std::endl;
+        }
+
+        traciInitialized = true;
+        emit(traciInitializedSignal, true);
         return;
     }
     if (msg == executeOneTimestepTrigger) {
@@ -682,6 +727,23 @@ void TraCIScenarioManager::deleteManagedModule(std::string nodeId)
 
 //     if (!autoShutdownTriggered) scheduleAt(simTime() + updateInterval, executeOneTimestepTrigger);
 // }
+/**
+ * @brief Executes a single simulation timestep using gRPC instead of legacy TraCI.
+ * 
+ * This function handles the periodic synchronization between OMNeT++ and the external 
+ * SUMO simulation. It has been rewritten to replace the standard TraCI socket communication
+ * with a modern gRPC-based architecture. 
+ * 
+ * Key workflow:
+ * 1. Establishes a gRPC channel to the server if one does not already exist.
+ * 2. Sends a StepRequest containing the current OMNeT++ simulation target time.
+ * 3. Receives a StepResponse containing bulk data of all active vehicles in SUMO.
+ * 4. Processes the response to synchronize the OMNeT++ environment:
+ *    - Updates positions and headings for existing vehicles.
+ *    - Spawns new vehicles in OMNeT++ that have entered the SUMO simulation.
+ *    - Performs garbage collection by removing "ghost" vehicles from OMNeT++ 
+ *      that have exited the SUMO simulation.
+ */
 void TraCIScenarioManager::executeOneTimestep()
 {
     // --- FORCE GRPC CONNECTION IF NOT CONNECTED ---
@@ -698,7 +760,8 @@ void TraCIScenarioManager::executeOneTimestep()
     simtime_t targetTime = simTime();
     emit(traciTimestepBeginSignal, targetTime);
 
-    if (isConnected() && stub_) {
+    //if (isConnected() && stub_) {
+    if (stub_) {
         // 1. Prepare the gRPC Request
         veinsthesis::StepRequest request;
         request.set_target_time(targetTime.dbl());
@@ -722,22 +785,53 @@ void TraCIScenarioManager::executeOneTimestep()
                 activeSumoVehicles.insert(vId); // Mark this car as active!
 
                 // Only printing the fields for the first 2 vehicles in the list to keep the terminal clean
-                if (printCount < 2) {
-                    std::cout << " *** [Data Check] Car " << vId 
-                              << " | X: " << vehicle.position_x() 
-                              << " | Y: " << vehicle.position_y() 
-                              << " | Speed: " << vehicle.speed() << " m/s"
-                              << " | Angle: " << vehicle.angle() << "°"
-                              << " | Road: " << vehicle.road_id()
-                              << " | Length: " << vehicle.length() << " m"
-                              << " | Width: " << vehicle.width() << " m" << std::endl;
-                    printCount++; // Increase the counter so we stop at 2!
-                }
+                // if (printCount < 2) {
+                //     std::cout << " *** [Data Check] Car " << vId 
+                //               << " | X: " << vehicle.position_x() 
+                //               << " | Y: " << vehicle.position_y() 
+                //               << " | Speed: " << vehicle.speed() << " m/s"
+                //               << " | Angle: " << vehicle.angle() << "°"
+                //               << " | Road: " << vehicle.road_id()
+                //               << " | Length: " << vehicle.length() << " m"
+                //               << " | Width: " << vehicle.width() << " m" << std::endl;
+                //     printCount++; // Increase the counter so we stop at 2!
+                // }
                 
                 // Translate SUMO coordinates to OMNeT++ map coordinates
-                Coord p = connection->traci2omnet(TraCICoord(vehicle.position_x(), vehicle.position_y()));
-                Heading heading = connection->traci2omnetHeading(vehicle.angle());
+                //Coord p = connection->traci2omnet(TraCICoord(vehicle.position_x(), vehicle.position_y()));
+                //Heading heading = connection->traci2omnetHeading(vehicle.angle());
+
+                // // 1. Define the Erlangen UTM Offsets
+                // double mapOffsetX = 644000.0;
+                // double mapOffsetY = 5490000.0;
+
+                // // 2. Translate SUMO coordinates manually to fit on the OMNeT++ screen!
+                // Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
+                // Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
+
+                // ---> Step 1&2: GRPC THESIS: DYNAMIC COORDINATE TRANSLATION <---
+                // We subtract the dynamic boundaries we fetched at t=0 from the current car. 
+                // This shifts the massive UTM coordinates down to small numbers that 
+                // fit perfectly inside the OMNeT++ playground window.
+                Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
+                Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
                 
+                // ---> GRPC THESIS: LOG VEHICLE DATA <---
+                // if (grpcLogFile.is_open()) {
+                //     grpcLogFile << targetTime.dbl() << "," 
+                //                 << vId << "," 
+                //                 << p.x << "," 
+                //                 << p.y << "," 
+                //                 << vehicle.speed() << "\n";
+                // }
+
+                if (grpcLogFile.is_open()) {
+                    grpcLogFile << targetTime.dbl() << "," 
+                                << vId << "," 
+                                << vehicle.position_x() << "," 
+                                << vehicle.position_y() << "," 
+                                << vehicle.speed() << "\n";
+                }
                 cModule* mod = getManagedModule(vId);
                 
                 if (!mod) {

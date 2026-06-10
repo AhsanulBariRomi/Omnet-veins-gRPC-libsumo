@@ -33,10 +33,24 @@
 
 <!--
 194 Cars leaving the Computer Science Building and campus of the University of Erlangen-Nuremberg
--->
 
 <routes>
    <vType id="vtype0" accel="2.6" decel="4.5" sigma="0.5" length="2.5" minGap="2.5" maxSpeed="14" color="1,1,0"/>
    <route id="route0" edges="-39539626 -5445204#2 -5445204#1 113939244#2 -126606716 23339459 30405358#1 85355912 85355911#0 85355911#1 30405356 5931612 30350450#0 30350450#1 30350450#2 4006702#0 4006702#1 4900043 4900041#1"/>
    <flow id="flow0" type="vtype0" route="route0" begin="0" period="3" number="195" departSpeed="max"/>
+</routes>
+-->
+
+<routes>
+   <vType id="vtype_sedan" accel="2.6" decel="4.5" sigma="0.5" length="4.5" width="1.8" height="1.5" minGap="2.5" maxSpeed="14" color="1,1,0"/>
+   
+   <vType id="vtype_suv" accel="2.2" decel="4.0" sigma="0.5" length="5.2" width="2.0" height="1.9" minGap="2.5" maxSpeed="12" color="0,0,1"/>
+   
+   <vType id="vtype_bus" accel="1.2" decel="3.0" sigma="0.5" length="12.0" width="2.5" height="3.4" minGap="3.0" maxSpeed="10" color="1,0,0"/>
+
+   <route id="route0" edges="-39539626 -5445204#2 -5445204#1 113939244#2 -126606716 23339459 30405358#1 85355912 85355911#0 85355911#1 30405356 5931612 30350450#0 30350450#1 30350450#2 4006702#0 4006702#1 4900043 4900041#1"/>
+
+   <flow id="flow_sedan" type="vtype_sedan" route="route0" begin="0" period="4" number="100" departSpeed="max"/>
+   <flow id="flow_suv" type="vtype_suv" route="route0" begin="1" period="8" number="65" departSpeed="max"/>
+   <flow id="flow_bus" type="vtype_bus" route="route0" begin="2" period="18" number="30" departSpeed="max"/>
 </routes>

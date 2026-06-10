@@ -4,19 +4,21 @@ package veinsthesis;
 
 // This is the OMNeT++ Request -> asking SUMO to step forward
 message StepRequest {
-  double target_time = 1;
+  double target_time = 1; // The simulation time OMNeT++ wants to advance to
 }
 
-// The Blueprint (TraCI used to subscribe) -> 8 variables for a single car
+// The Blueprint (TraCI used to subscribe) -> 10 variables for a single car
 message VehicleState {
-  string vehicle_id = 1;
+  string vehicle_id = 1; // Unique identifier for the vehicle (e.g., "flow0.0")
   double position_x = 2;
   double position_y = 3;
-  double speed = 4;
-  double angle = 5;
-  string road_id = 6;
-  double length = 7;
-  double width = 8;
+  double speed = 4;      // Current velocity of the vehicle in meters per second (m/s)
+  double angle = 5;      // Heading/direction of the vehicle in degrees (0-360)
+  string road_id = 6;    // The SUMO ID of the current road/edge the vehicle is driving on
+  double length = 7;     // Physical length of the vehicle in meters (used for drawing and bounding boxes)
+  double width = 8;      // Physical width of the vehicle in meters
+  double height = 9;     // Physical height of the vehicle in meters (crucial for accurate 3D radio occlusion)
+  int32 signals = 10;    // Integer bitmask representing active vehicle signals (e.g., turn signals, brake lights)
 }
 
 // The response -> Master list of all cars

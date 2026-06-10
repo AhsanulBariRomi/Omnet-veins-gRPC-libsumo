@@ -563,7 +563,7 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
         // Create the CSV file in the directory where the simulation is run
         grpcLogFile.open("grpc_physics.csv", std::ios_base::out);
         if (grpcLogFile.is_open()) {
-            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,Speed\n";
+            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,Speed,Length,Width,Height\n";
             std::cout << "📊 Validation Logger Started: grpc_physics.csv" << std::endl;
         } else {
             std::cerr << "❌ Failed to open grpc_physics.csv for writing!" << std::endl;
@@ -809,7 +809,20 @@ void TraCIScenarioManager::executeOneTimestep()
                 // Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
                 // Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
 
-                // ---> Step 1&2: GRPC THESIS: DYNAMIC COORDINATE TRANSLATION <---
+                // ---> Step 1: EXTRACT ALL 10 VALUES CLEANLY FROM GRPC <---
+                double vX = vehicle.position_x();
+                double vY = vehicle.position_y();
+                double vSpeed = vehicle.speed();
+                double vAngle = vehicle.angle();
+                std::string vRoad = vehicle.road_id();
+                double vLength = vehicle.length();
+                double vWidth = vehicle.width();
+                
+                // --- NEW GRPC FIELDS (Phase 1 Quick Win) ---
+                double vHeight = vehicle.height();
+                int vSignals = vehicle.signals();
+
+                // ---> Step 2: GRPC THESIS: DYNAMIC COORDINATE TRANSLATION <---
                 // We subtract the dynamic boundaries we fetched at t=0 from the current car. 
                 // This shifts the massive UTM coordinates down to small numbers that 
                 // fit perfectly inside the OMNeT++ playground window.
@@ -829,8 +842,12 @@ void TraCIScenarioManager::executeOneTimestep()
                     grpcLogFile << targetTime.dbl() << "," 
                                 << vId << "," 
                                 << vehicle.position_x() << "," 
-                                << vehicle.position_y() << "," 
-                                << vehicle.speed() << "\n";
+                                << vehicle.position_y() << ","  
+                                << vehicle.speed() << ","
+                                << vehicle.length() << "," 
+                                << vehicle.width() << "," 
+                                << vehicle.height() << "," 
+                                << vehicle.signals() << "\n";
                 }
                 cModule* mod = getManagedModule(vId);
                 
@@ -838,10 +855,14 @@ void TraCIScenarioManager::executeOneTimestep()
                     // Car doesn't exist in OMNeT++ yet, spawn it!
                     std::string mType = moduleType["*"];
                     std::string mName = moduleName["*"];
-                    addModule(vId, mType, mName, "", p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0), vehicle.length(), vehicle.width(), 0);
+                    // ---> LEGACY CODE (Commented out): Notice the hardcoded 0s for signals and height!
+                    //addModule(vId, mType, mName, "", p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0), vehicle.length(), vehicle.width(), 0);
+                    addModule(vId, mType, mName, "", p, vRoad, vSpeed, heading, VehicleSignalSet(vSignals), vLength, vHeight, vWidth);
                 } else {
                     // Car exists, update its position
-                    updateModulePosition(mod, p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0));
+                    // ---> LEGACY CODE (Commented out): Notice the hardcoded 0 for signals!
+                    //updateModulePosition(mod, p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0));
+                    updateModulePosition(mod, p, vRoad, vSpeed, heading, VehicleSignalSet(vSignals));
                     emit(traciModuleUpdatedSignal, mod);
                 }
             }
@@ -862,7 +883,8 @@ void TraCIScenarioManager::executeOneTimestep()
             }
 
             // 4c. Print the true count with the Step Time!
-            std::cout << "✅ Step " << targetTime.dbl() << "s | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
+            //std::cout << "✅ Step " << targetTime.dbl() << "s | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
+            std::cout << "✅ Step " << targetTime.str() << " | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
             std::cout << "\n";
         } else {
             //EV_ERROR << "gRPC step failed: " << status.error_message() << endl;

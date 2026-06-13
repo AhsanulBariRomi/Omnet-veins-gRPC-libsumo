@@ -50,7 +50,7 @@
 
    <route id="route0" edges="-39539626 -5445204#2 -5445204#1 113939244#2 -126606716 23339459 30405358#1 85355912 85355911#0 85355911#1 30405356 5931612 30350450#0 30350450#1 30350450#2 4006702#0 4006702#1 4900043 4900041#1"/>
 
-   <flow id="flow_sedan" type="vtype_sedan" route="route0" begin="0" period="4" number="100" departSpeed="max"/>
-   <flow id="flow_suv" type="vtype_suv" route="route0" begin="1" period="8" number="65" departSpeed="max"/>
-   <flow id="flow_bus" type="vtype_bus" route="route0" begin="2" period="18" number="30" departSpeed="max"/>
+   <flow id="flow0" type="vtype_sedan" route="route0" begin="0" period="4" number="100" departSpeed="max"/>
+   <flow id="flow1" type="vtype_suv" route="route0" begin="1" period="8" number="65" departSpeed="max"/>
+   <flow id="flow2" type="vtype_bus" route="route0" begin="2" period="18" number="30" departSpeed="max"/>
 </routes>

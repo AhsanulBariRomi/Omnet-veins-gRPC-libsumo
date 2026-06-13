@@ -19,6 +19,9 @@ message VehicleState {
   double width = 8;      // Physical width of the vehicle in meters
   double height = 9;     // Physical height of the vehicle in meters (crucial for accurate 3D radio occlusion)
   int32 signals = 10;    // Integer bitmask representing active vehicle signals (e.g., turn signals, brake lights)
+
+  string vehicle_type = 11;  // The class/type of the vehicle (e.g., "passenger", "bus")
+  double position_z = 12;    // The elevation/slope of the vehicle
 }
 
 // The response -> Master list of all cars

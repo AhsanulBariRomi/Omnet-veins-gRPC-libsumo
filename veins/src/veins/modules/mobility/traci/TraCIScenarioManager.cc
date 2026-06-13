@@ -529,7 +529,7 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
         // // Initialize the gRPC Channel to talk to the Server // // // // // //
         std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
         stub_ = veinsthesis::SumoCosimulation::NewStub(channel);
-        std::cout << "\n✅ gRPC Client Connected directly! Python Dummy Server is DEAD.\n" << std::endl;
+        std::cout << "\nHEADS UP ====> gRPC Client Connected directly! Python Dummy Server is DEAD.\n" << std::endl;
         ///////////////////////////////////////////////////////////////////////////
         //commandIfc.reset(new TraCICommandInterface(this, *connection, ignoreGuiCommands));
         //init_traci();
@@ -551,22 +551,22 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
             mapOffsetY = bRes.offset_y();
             // Force C++ to print exact decimals instead of scientific notation!
             std::cout << std::fixed << std::setprecision(2);
-            std::cout << "📍 Map Offsets received dynamically: X=" << mapOffsetX << ", Y=" << mapOffsetY << std::endl;
+            std::cout << "HEADS UP ====> Map Offsets received dynamically: X=" << mapOffsetX << ", Y=" << mapOffsetY << std::endl;
             std::cout << "\n";
             // Reset it back to default so we don't mess up OMNeT++'s other logs
             std::cout << std::defaultfloat;
         } else {
-            std::cerr << "❌ Failed to fetch map boundaries: " << bStatus.error_message() << std::endl;
+            std::cerr << "ERROR: =====> Failed to fetch map boundaries: " << bStatus.error_message() << std::endl;
         }
 
         // ---> GRPC THESIS: INITIALIZE VALIDATION LOGGER <---
         // Create the CSV file in the directory where the simulation is run
         grpcLogFile.open("grpc_physics.csv", std::ios_base::out);
         if (grpcLogFile.is_open()) {
-            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,Speed,Length,Width,Height,Signals\n";
-            std::cout << "📊 Validation Logger Started: grpc_physics.csv" << std::endl;
+            grpcLogFile << "Time,VehicleID,OMNeT_X,OMNeT_Y,OMNeT_Z,Speed,Length,Width,Height,Signals,Type\n";
+            std::cout << "HEADS UP ====> Validation Logger Started: grpc_physics.csv" << std::endl;
         } else {
-            std::cerr << "❌ Failed to open grpc_physics.csv for writing!" << std::endl;
+            std::cerr << "ERROR: =====> Failed to open grpc_physics.csv for writing!" << std::endl;
         }
 
         traciInitialized = true;
@@ -839,15 +839,17 @@ void TraCIScenarioManager::executeOneTimestep()
                 // }
 
                 if (grpcLogFile.is_open()) {
-                    grpcLogFile << targetTime.dbl() << "," 
-                                << vId << "," 
-                                << vehicle.position_x() << "," 
-                                << vehicle.position_y() << ","  
+                    grpcLogFile << targetTime.dbl() << ","
+                                << vehicle.vehicle_id() << ","
+                                << vehicle.position_x() << ","
+                                << vehicle.position_y() << ","
+                                << vehicle.position_z() << ","
                                 << vehicle.speed() << ","
-                                << vehicle.length() << "," 
-                                << vehicle.width() << "," 
-                                << vehicle.height() << "," 
-                                << vehicle.signals() << "\n";
+                                << vehicle.length() << ","
+                                << vehicle.width() << ","
+                                << vehicle.height() << ","
+                                << vehicle.signals() << ","
+                                << vehicle.vehicle_type() << "\n";
                 }
                 cModule* mod = getManagedModule(vId);
                 
@@ -883,12 +885,12 @@ void TraCIScenarioManager::executeOneTimestep()
             }
 
             // 4c. Print the true count with the Step Time!
-            //std::cout << "✅ Step " << targetTime.dbl() << "s | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
-            std::cout << "✅ Step " << targetTime.str() << " | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
+            //std::cout << "Step " << targetTime.dbl() << "s | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
+            std::cout << "Step " << targetTime.str() << " | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
             std::cout << "\n";
         } else {
             //EV_ERROR << "gRPC step failed: " << status.error_message() << endl;
-            std::cerr << "❌ Step " << targetTime.dbl() << "s | gRPC step failed: " << status.error_message() << std::endl;
+            std::cerr << "ERROR: =====> Step " << targetTime.dbl() << "s | gRPC step failed: " << status.error_message() << std::endl;
         }
     }
 

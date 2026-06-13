@@ -65,9 +65,17 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
             state->set_vehicle_id(vId);
             
             // Get position directly from libsumo memory
-            libsumo::TraCIPosition pos = libsumo::Vehicle::getPosition(vId);
-            state->set_position_x(pos.x);
-            state->set_position_y(pos.y);
+            // libsumo::TraCIPosition pos = libsumo::Vehicle::getPosition(vId);
+            // state->set_position_x(pos.x);
+            // state->set_position_y(pos.y);
+
+            // Get 3D position directly from libsumo memory
+            libsumo::TraCIPosition pos3d = libsumo::Vehicle::getPosition3D(vId);
+            state->set_position_x(pos3d.x);
+            state->set_position_y(pos3d.y);
+            state->set_position_z(pos3d.z);
+            
+            state->set_vehicle_type(libsumo::Vehicle::getTypeID(vId));
             
             state->set_speed(libsumo::Vehicle::getSpeed(vId));
             state->set_angle(libsumo::Vehicle::getAngle(vId));

@@ -22,6 +22,8 @@ message VehicleState {
 
   string vehicle_type = 11;  // The class/type of the vehicle (e.g., "passenger", "bus")
   double position_z = 12;    // The elevation/slope of the vehicle
+
+  double acceleration = 13;  // Current acceleration in m/s^2
 }
 
 // The response -> Master list of all cars

@@ -78,6 +78,7 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
             state->set_vehicle_type(libsumo::Vehicle::getTypeID(vId));
             
             state->set_speed(libsumo::Vehicle::getSpeed(vId));
+            state->set_acceleration(libsumo::Vehicle::getAcceleration(vId)); 
             state->set_angle(libsumo::Vehicle::getAngle(vId));
             state->set_road_id(libsumo::Vehicle::getRoadID(vId));
             state->set_length(libsumo::Vehicle::getLength(vId));

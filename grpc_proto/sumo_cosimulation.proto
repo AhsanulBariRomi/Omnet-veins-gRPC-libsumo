@@ -41,8 +41,46 @@ message BoundaryResponse {
   double offset_y = 2;
 }
 
+// ====================================================================
+// ENVIRONMENT DATA STRUCTURES
+// ====================================================================
+// The Request -> Empty because OMNeT++ just wants the master list of all traffic lights
+message TrafficLightRequest {
+}
+// The Blueprint -> Represents a single traffic light intersection
+message TrafficLightState {
+  string tl_id = 1;  // Unique identifier for the traffic light (e.g., "cluster_1_2")
+  string state = 2;  // A string of characters representing the phase of each lane (e.g., "GrGr" means Green for lane 1, Red for lane 2)
+}
+// The Response -> Master list of all traffic lights and their current colors
+message TrafficLightResponse {
+  repeated TrafficLightState traffic_lights = 1;
+}
+
+// The Request -> Empty because OMNeT++ just wants the master list of all map polygons
+message PolygonRequest {
+}
+// A helper blueprint -> Represents a single X/Y coordinate for building a shape
+message Point2D {
+  double x = 1;
+  double y = 2;
+}
+// The Blueprint -> Represents a single static obstacle (like a building or lake)
+message PolygonState {
+  string poly_id = 1;        // Unique identifier for the polygon
+  string type = 2;           // The category of the polygon (e.g., "building", "water", "forest")
+  repeated Point2D shape = 3;// A list of X/Y coordinates that draw the outline of the obstacle
+}
+// The Response -> Master list of all polygons on the SUMO map
+message PolygonResponse {
+  repeated PolygonState polygons = 1;
+}
+
 // The gRPC Service
 service SumoCosimulation {
   rpc ExecuteStep (StepRequest) returns (StepResponse);
   rpc GetNetworkBoundaries (BoundaryRequest) returns (BoundaryResponse);
+
+  rpc GetTrafficLights (TrafficLightRequest) returns (TrafficLightResponse);
+  rpc GetPolygons (PolygonRequest) returns (PolygonResponse);
 }

@@ -559,6 +559,38 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
             std::cerr << "ERROR: =====> Failed to fetch map boundaries: " << bStatus.error_message() << std::endl;
         }
 
+        // ==========================================
+        // FETCH POLYGONS (BUILDINGS) FROM gRPC
+        // ==========================================
+        veinsthesis::PolygonRequest polyReq;
+        veinsthesis::PolygonResponse polyRes;
+        grpc::ClientContext polyContext;
+        
+        grpc::Status polyStatus = stub_->GetPolygons(&polyContext, polyReq, &polyRes);
+        
+        if (polyStatus.ok()) {
+            std::cout << "************************************************************" << std::endl;
+            std::cout << "Heads up ====> Polygons Successfully fetched " << polyRes.polygons_size() << " Polygons (Obstacles) from gRPC!" << std::endl;
+            std::cout << "************************************************************" << std::endl;
+            // ---> INJECT POLYGONS INTO VEINS <---
+            std::vector<ObstacleControl*> obstaclesModules = FindModule<ObstacleControl*>::findSubModules(getSimulation()->getSystemModule());
+            for (ObstacleControl* obstacles : obstaclesModules) {
+                for (const auto& poly : polyRes.polygons()) {
+                    // Only drawing polygons that represent physical obstacles (buildings, water, etc.)
+                    if (obstacles && obstacles->isTypeSupported(poly.type())) {
+                        std::vector<Coord> shape;
+                        for (const auto& pt : poly.shape()) {
+                            // Translating the massive UTM coordinate down to the OMNeT++ playground scale!
+                            shape.push_back(Coord(pt.x() - mapOffsetX, pt.y() - mapOffsetY));
+                        }
+                        obstacles->addFromTypeAndShape(poly.poly_id(), poly.type(), shape);
+                    }
+                }
+            }
+        } else {
+            std::cerr << "Error ====> Error fetching Polygons: " << polyStatus.error_message() << std::endl;
+        }
+
         // ---> GRPC THESIS: INITIALIZE VALIDATION LOGGER <---
         // Create the CSV file in the directory where the simulation is run
         grpcLogFile.open("grpc_physics.csv", std::ios_base::out);
@@ -860,10 +892,10 @@ void TraCIScenarioManager::executeOneTimestep()
                     std::string mName = moduleName["*"];
                     // ---> LEGACY CODE (Commented out): Notice the hardcoded 0s for signals and height!
                     //addModule(vId, mType, mName, "", p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0), vehicle.length(), vehicle.width(), 0);
-                    addModule(vId, mType, mName, "", p, vRoad, vSpeed, heading, VehicleSignalSet(vSignals), vLength, vHeight, vWidth);
+                    addModule(vId, mType, mName, "i=misc/node2;is=vs", p, vRoad, vSpeed, heading, VehicleSignalSet(vSignals), vLength, vHeight, vWidth);
                 } else {
                     // Car exists, update its position
-                    // ---> LEGACY CODE (Commented out): Notice the hardcoded 0 for signals!
+                    // ---> LEGACY CODE (Commented out): Notice the hardcoded 0 for signals
                     //updateModulePosition(mod, p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0));
                     updateModulePosition(mod, p, vRoad, vSpeed, heading, VehicleSignalSet(vSignals));
                     emit(traciModuleUpdatedSignal, mod);
@@ -892,6 +924,48 @@ void TraCIScenarioManager::executeOneTimestep()
         } else {
             //EV_ERROR << "gRPC step failed: " << status.error_message() << endl;
             std::cerr << "ERROR: =====> Step " << targetTime.dbl() << "s | gRPC step failed: " << status.error_message() << std::endl;
+        }
+
+                // ==========================================
+        // FETCH TRAFFIC LIGHTS FROM gRPC
+        // ==========================================
+        veinsthesis::TrafficLightRequest tlReq;
+        veinsthesis::TrafficLightResponse tlRes;
+        grpc::ClientContext tlContext;
+        
+        grpc::Status tlStatus = stub_->GetTrafficLights(&tlContext, tlReq, &tlRes);
+        
+        if (tlStatus.ok()) {
+            std::cout << "=============================================================" << std::endl;
+            std::cout << "Head Up ====> Traffic light Fetched " << tlRes.traffic_lights_size() << " Traffic Lights." << std::endl;
+            std::cout << "=============================================================" << std::endl;
+            for (const auto& tl : tlRes.traffic_lights()) {
+                // Find the traffic light in Veins and update its state
+                // 1. Check if this traffic light actually exists in the OMNeT++ map
+                if (trafficLights.find(tl.tl_id()) != trafficLights.end()) {
+                    
+                    // 2. Grab the generic OMNeT++ module representing this intersection
+                    cModule* genericModule = trafficLights[tl.tl_id()];
+                    
+                    // 3. Find the specific "tlInterface" submodule inside it
+                    cModule* tlIfSubmodule = genericModule->getSubmodule("tlInterface");
+                    
+                    // 4. Cast the generic module into Veins' specific Traffic Light API class
+                    // This is required so we can call the specific setter functions!
+                    TraCITrafficLightInterface* tlIfModule = dynamic_cast<TraCITrafficLightInterface*>(tlIfSubmodule);
+                    
+                    if (tlIfModule) {
+                        // 5. Inject the raw Protobuf state string (e.g. "GgGrrr") directly into the Veins logic
+                        // The 'false' matches legacy TraCI behavior to prevent looping/recursive updates
+                        tlIfModule->setCurrentState(tl.state(), false);
+                    }
+                    
+                    // 6. Trigger the Veins GUI signal so the intersection visibly changes color on the screen!
+                    emit(traciTrafficLightUpdatedSignal, genericModule);
+                }
+            }
+        } else {
+            std::cerr << "Error ====> Error fetching Traffic Lights: " << tlStatus.error_message() << std::endl;
         }
     }
 

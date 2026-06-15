@@ -572,12 +572,21 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
             std::cout << "************************************************************" << std::endl;
             std::cout << "Heads up ====> Polygons Successfully fetched " << polyRes.polygons_size() << " Polygons (Obstacles) from gRPC!" << std::endl;
             std::cout << "************************************************************" << std::endl;
-            // Example of how we will feed this to Veins later: /////////////////////
-            // for (const auto& poly : polyRes.polygons()) {
-            //     if (poly.type() == "building") {
-            //          // ObstacleControl->addPolygon(...)
-            //     }
-            // }
+            // ---> INJECT POLYGONS INTO VEINS <---
+            std::vector<ObstacleControl*> obstaclesModules = FindModule<ObstacleControl*>::findSubModules(getSimulation()->getSystemModule());
+            for (ObstacleControl* obstacles : obstaclesModules) {
+                for (const auto& poly : polyRes.polygons()) {
+                    // Only drawing polygons that represent physical obstacles (buildings, water, etc.)
+                    if (obstacles && obstacles->isTypeSupported(poly.type())) {
+                        std::vector<Coord> shape;
+                        for (const auto& pt : poly.shape()) {
+                            // Translating the massive UTM coordinate down to the OMNeT++ playground scale!
+                            shape.push_back(Coord(pt.x() - mapOffsetX, pt.y() - mapOffsetY));
+                        }
+                        obstacles->addFromTypeAndShape(poly.poly_id(), poly.type(), shape);
+                    }
+                }
+            }
         } else {
             std::cerr << "Error ====> Error fetching Polygons: " << polyStatus.error_message() << std::endl;
         }
@@ -886,7 +895,7 @@ void TraCIScenarioManager::executeOneTimestep()
                     addModule(vId, mType, mName, "i=misc/node2;is=vs", p, vRoad, vSpeed, heading, VehicleSignalSet(vSignals), vLength, vHeight, vWidth);
                 } else {
                     // Car exists, update its position
-                    // ---> LEGACY CODE (Commented out): Notice the hardcoded 0 for signals!
+                    // ---> LEGACY CODE (Commented out): Notice the hardcoded 0 for signals
                     //updateModulePosition(mod, p, vehicle.road_id(), vehicle.speed(), heading, VehicleSignalSet(0));
                     updateModulePosition(mod, p, vRoad, vSpeed, heading, VehicleSignalSet(vSignals));
                     emit(traciModuleUpdatedSignal, mod);

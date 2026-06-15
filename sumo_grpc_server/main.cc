@@ -8,6 +8,8 @@
 // Include libsumo to access SUMO's memory directly
 #include <libsumo/Simulation.h>
 #include <libsumo/Vehicle.h>
+#include <libsumo/TrafficLight.h>
+#include <libsumo/Polygon.h>
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -34,12 +36,12 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
             response->set_offset_x(boundary.value[0].x);
             response->set_offset_y(boundary.value[0].y);
             
-            std::cout << "📍 Sent dynamic Map Boundaries to OMNeT++: X=" << boundary.value[0].x << ", Y=" << boundary.value[0].y << std::endl;
+            std::cout << "Heads up ===> Sent dynamic Map Boundaries to OMNeT++: X=" << boundary.value[0].x << ", Y=" << boundary.value[0].y << std::endl;
             std::cout << "\n";
             return Status::OK;
             
         } catch (const std::exception& e) {
-            std::cerr << "❌ Error fetching boundaries: " << e.what() << std::endl;
+            std::cerr << "Error ====> Error fetching boundaries: " << e.what() << std::endl;
             return Status(grpc::StatusCode::INTERNAL, e.what());
         }
     }
@@ -93,6 +95,61 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
 
         // 4. SHIP IT BACK
         return Status::OK;
+    }
+
+    // This gRPC method fetches the current phase (Red/Yellow/Green) of every traffic light
+    Status GetTrafficLights(ServerContext* context, const veinsthesis::TrafficLightRequest* request, veinsthesis::TrafficLightResponse* response) override {
+        try {
+            // 1. GET ALL TRAFFIC LIGHTS
+            std::vector<std::string> tlIds = libsumo::TrafficLight::getIDList();
+            
+            // 2. PACK THE BOX
+            for (const std::string& id : tlIds) {
+                // Creates a new slot in the repeated list
+                veinsthesis::TrafficLightState* tl = response->add_traffic_lights();
+                
+                tl->set_tl_id(id);
+                // Fetch the phase string directly from libsumo memory (e.g., "GgGrrr")
+                tl->set_state(libsumo::TrafficLight::getRedYellowGreenState(id));
+            }
+            
+            // 3. SHIP IT BACK
+            return Status::OK;
+        } catch (const std::exception& e) {
+            std::cerr << "Error ====> Error fetching traffic lights: " << e.what() << std::endl;
+            return Status(grpc::StatusCode::INTERNAL, e.what());
+        }
+    }
+
+        // This gRPC method fetches all static obstacles (Polygons) for the Veins ObstacleControl module
+    Status GetPolygons(ServerContext* context, const veinsthesis::PolygonRequest* request, veinsthesis::PolygonResponse* response) override {
+        try {
+            // 1. GET ALL POLYGONS
+            std::vector<std::string> polyIds = libsumo::Polygon::getIDList();
+            
+            // 2. PACK THE BOX
+            for (const std::string& id : polyIds) {
+                veinsthesis::PolygonState* poly = response->add_polygons();
+                
+                poly->set_poly_id(id);
+                poly->set_type(libsumo::Polygon::getType(id));
+                
+                // 3. EXTRACT THE SHAPE COORDINATES
+                // getShape returns a TraCIPositionVector containing every corner of the building
+                libsumo::TraCIPositionVector shape = libsumo::Polygon::getShape(id);
+                for (const auto& point : shape.value) {
+                    veinsthesis::Point2D* p2d = poly->add_shape();
+                    p2d->set_x(point.x);
+                    p2d->set_y(point.y);
+                }
+            }
+            
+            // 4. SHIP IT BACK
+            return Status::OK;
+        } catch (const std::exception& e) {
+            std::cerr << "Error ====> Error fetching polygons: " << e.what() << std::endl;
+            return Status(grpc::StatusCode::INTERNAL, e.what());
+        }
     }
 };
 

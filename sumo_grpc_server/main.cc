@@ -151,6 +151,19 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
             return Status(grpc::StatusCode::INTERNAL, e.what());
         }
     }
+
+    //SERVER CLOSING SIGNAL
+    Status CloseSimulation(ServerContext* context, const veinsthesis::CloseRequest* request, veinsthesis::CloseResponse* response) override {
+        std::cout << "Heads up ===> OMNeT++ requested shutdown. Releasing SUMO state..." << std::endl;
+         
+        // Just cleanly close the current SUMO simulation and start a fresh one for the next run.
+        libsumo::Simulation::close();
+        libsumo::Simulation::start({"sumo", "-c", "erlangen.sumo.cfg"});
+        
+        std::cout << "Heads up ===> SUMO has been reset and is ready for the next run..." << std::endl;
+        
+        return Status::OK;
+    }
 };
 
 void RunServer() {
@@ -162,6 +175,7 @@ void RunServer() {
     builder.RegisterService(&service);
     
     std::unique_ptr<Server> server(builder.BuildAndStart());
+
     std::cout << "gRPC SUMO Server listening on " << server_address << std::endl;
     server->Wait();
 }

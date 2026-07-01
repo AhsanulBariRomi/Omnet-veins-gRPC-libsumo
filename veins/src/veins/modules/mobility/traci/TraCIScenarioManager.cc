@@ -495,7 +495,17 @@ void TraCIScenarioManager::finish()
     // ---> GRPC THESIS: CLOSE VALIDATION LOGGER <---
     if (grpcLogFile.is_open()) {
         grpcLogFile.close();
-        std::cout << "💾 Saved validation data to grpc_physics.csv" << std::endl;
+        std::cout << "HEADS UP ====> Saved validation data to grpc_physics.csv" << std::endl;
+    }
+
+    // ---> GRPC THESIS: SERVER CLOSING SIGNAL <---
+    // When OMNeT++ finishes (either by autoShutdown or time limit), kill the gRPC server
+    if (stub_) {
+        veinsthesis::CloseRequest req;
+        veinsthesis::CloseResponse res;
+        grpc::ClientContext context;
+        stub_->CloseSimulation(&context, req, &res);
+        std::cout << "HEADS UP ====> Sent shutdown signal to gRPC Server!" << std::endl;
     }
 }
 
@@ -917,6 +927,12 @@ void TraCIScenarioManager::executeOneTimestep()
                 deleteManagedModule(vId);
             }
 
+            // Pull the fire alarm if the city is empty!
+            // (We check targetTime > 1.0 so it doesn't accidentally trigger at t=0 before cars spawn)
+            if (autoShutdown && hosts.empty() && targetTime.dbl() > 1.0) {
+                autoShutdownTriggered = true;
+                std::cout << "All cars have arrived! Triggering Auto Shutdown..." << std::endl;
+            }
             // 4c. Print the true count with the Step Time!
             //std::cout << "Step " << targetTime.dbl() << "s | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
             std::cout << "Step " << targetTime.str() << " | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;

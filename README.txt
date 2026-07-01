@@ -125,7 +125,9 @@ Step5. The final test - THe dual terminal Test
 		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
 		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini 
 		
-		(OR ./run -u Cmdenv -r 0)
+		For GUI:
+		cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
+		./run -u Qtenv
 
 Expected Result: Terminal 3 will print >>>> FORCING gRPC CONNECTION <<<<, and Terminal 2 will immediately begin printing the "Step Requested" logs all the way up to the simulation limit of 200s.
 
@@ -138,6 +140,7 @@ Expected Result: Terminal 3 will print >>>> FORCING gRPC CONNECTION <<<<, and Te
 
 
 ===========================================================================================================================================================
+LEGACY TRACI RUN
 ===========================================================================================================================================================
 Step 1: Start the Python Bridge (Terminal 1) - LEGACY SERVER
 >> cd "/mnt/f/VEINS/veins-master"
@@ -187,35 +190,7 @@ SUMO INSTALL AND VERSION CHECK
 >> sudo apt update
 sudo apt install sumo sumo-tools sumo-doc
 
-========================================================================================================================================================
-========================================================================================================================================================
-========================================================================================================================================================
-========================================================================================================================================================
-THE GENERATED CSV needs to look identical, to do that 
-1. Click the top-left corner of your Excel sheet to highlight all data.
-2. Go to Data -> Sort.
-3. Sort by Time (Smallest to Largest).
-4. Click Add Level, then sort by VehicleID (A to Z).
 
-========================================================================================================================================================
-========================================================================================================================================================
-========================================================================================================================================================
-========================================================================================================================================================
-TO PLOT THEM WE NEED CERTAIN LIBRARIES OF PYTHON - pandas, matplotlib
->> python3 --version
->> python3 -c "import pandas; import matplotlib.pyplot as plt; print('Libraries are installed and ready')"
-
-IF ALL OKAY, LETS PLOT
->> cd "/mnt/f/4. Academic(MSc)/Thesis/PLOT"
->> nano plot_validation.py
->> Right your code there
-
-	Save, Exit, and Run
-		- Press Ctrl+O, then Enter to save.
-		- Press Ctrl+X to exit nano.
-		- Run the script:
-		
->> python3 plot_validation.py
 
 ========================================================================================================================================================
 ========================================================================================================================================================
@@ -226,3 +201,41 @@ SIGNALS MEANING
 1 = right signal blincking
 2 = lef signal blincking
 8 = break signal turned on
+
+========================================================================================================================================================
+========================================================================================================================================================
+========================================================================================================================================================
+========================================================================================================================================================
+GUI VEIW (Qtenv):
+
+1. Install the missing Qt Graphical Libraries:
+	sudo apt-get update
+	sudo apt-get install -y qt6-base-dev qt6-tools-dev qt6-tools-dev-tools
+	
+2. Recompile OMNeT++:
+	cd "/mnt/f/Omnet/omnetpp-6.2.0"
+	make cleanall
+	./configure
+	make -j$(nproc)
+
+3. Run the GUI:
+	cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
+	./run -u Qtenv
+
+Also we must make sure to make WITH_QTENV = yes in the configure.use file in (F:\Omnet\omnetpp-6.2.0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

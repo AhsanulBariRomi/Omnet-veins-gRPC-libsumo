@@ -76,6 +76,10 @@ message PolygonResponse {
   repeated PolygonState polygons = 1;
 }
 
+// SERVER CLOSING SIGNAL 
+message CloseRequest {}
+message CloseResponse {}
+
 // The gRPC Service
 service SumoCosimulation {
   rpc ExecuteStep (StepRequest) returns (StepResponse);
@@ -83,4 +87,6 @@ service SumoCosimulation {
 
   rpc GetTrafficLights (TrafficLightRequest) returns (TrafficLightResponse);
   rpc GetPolygons (PolygonRequest) returns (PolygonResponse);
+
+  rpc CloseSimulation (CloseRequest) returns (CloseResponse);
 }

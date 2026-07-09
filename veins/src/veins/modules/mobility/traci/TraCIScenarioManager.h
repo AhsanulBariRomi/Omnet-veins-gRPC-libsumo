@@ -120,6 +120,15 @@ public:
         return hosts;
     }
 
+    // ---> GRPC THESIS: COMMAND ENQUEUE METHODS <---
+    void addVehicleCommand(const veinsthesis::VehicleCommand& cmd) {
+        vehicleCommandBatch.push_back(cmd);
+    }
+    
+    void addSpawnCommand(const veinsthesis::SpawnVehicleCommand& cmd) {
+        spawnCommandBatch.push_back(cmd);
+    }
+
     /**
      * Predicate indicating a successful connection to the TraCI server.
      *
@@ -176,6 +185,10 @@ protected:
     /// gRPC connection object ///////////////////////////////////////
     std::unique_ptr<veinsthesis::SumoCosimulation::Stub> stub_;
     //////////////////////////////////////////////////////////////////
+
+    // ---> GRPC THESIS: BATCH BUFFERS <---
+    std::vector<veinsthesis::VehicleCommand> vehicleCommandBatch;
+    std::vector<veinsthesis::SpawnVehicleCommand> spawnCommandBatch;
 
     std::unique_ptr<TraCICommandInterface> commandIfc;
 

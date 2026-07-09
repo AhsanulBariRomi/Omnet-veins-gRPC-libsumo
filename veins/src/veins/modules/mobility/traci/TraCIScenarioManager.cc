@@ -588,10 +588,11 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
                 for (const auto& poly : polyRes.polygons()) {
                     // Only drawing polygons that represent physical obstacles (buildings, water, etc.)
                     if (obstacles && obstacles->isTypeSupported(poly.type())) {
+                        double margin = par("margin").intValue();
                         std::vector<Coord> shape;
                         for (const auto& pt : poly.shape()) {
-                            // Translating the massive UTM coordinate down to the OMNeT++ playground scale!
-                            shape.push_back(Coord(pt.x() - mapOffsetX, pt.y() - mapOffsetY));
+                            // Translating the massive UTM coordinate down to the OMNeT++ playground scale (matching legacy TraCI)!
+                            shape.push_back(Coord(pt.x() - mapOffsetX + margin, mapOffsetY - pt.y() + margin));
                         }
                         obstacles->addFromTypeAndShape(poly.poly_id(), poly.type(), shape);
                     }
@@ -868,7 +869,8 @@ void TraCIScenarioManager::executeOneTimestep()
                 // We subtract the dynamic boundaries we fetched at t=0 from the current car. 
                 // This shifts the massive UTM coordinates down to small numbers that 
                 // fit perfectly inside the OMNeT++ playground window.
-                Coord p(vehicle.position_x() - mapOffsetX, vehicle.position_y() - mapOffsetY);
+                double margin = par("margin").intValue();
+                Coord p(vehicle.position_x() - mapOffsetX + margin, mapOffsetY - vehicle.position_y() + margin, vehicle.position_z());
                 Heading heading(-vehicle.angle() * M_PI / 180.0 + M_PI / 2.0);
                 
                 // ---> GRPC THESIS: LOG VEHICLE DATA <---
@@ -942,7 +944,7 @@ void TraCIScenarioManager::executeOneTimestep()
             std::cerr << "ERROR: =====> Step " << targetTime.dbl() << "s | gRPC step failed: " << status.error_message() << std::endl;
         }
 
-                // ==========================================
+        // ==========================================
         // FETCH TRAFFIC LIGHTS FROM gRPC
         // ==========================================
         veinsthesis::TrafficLightRequest tlReq;

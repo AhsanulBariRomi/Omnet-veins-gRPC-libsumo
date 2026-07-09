@@ -32,11 +32,11 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
             // This returns a TraCIPositionVector containing the bottom-left and top-right coordinates
             auto boundary = libsumo::Simulation::getNetBoundary();
             
-            // 2. Extract the bottom-left corner (index 0) as our precise offsets
+            // 2. Extract bottom-left X (index 0) and top-right Y (index 1)
             response->set_offset_x(boundary.value[0].x);
-            response->set_offset_y(boundary.value[0].y);
+            response->set_offset_y(boundary.value[1].y);
             
-            std::cout << "Heads up ===> Sent dynamic Map Boundaries to OMNeT++: X=" << boundary.value[0].x << ", Y=" << boundary.value[0].y << std::endl;
+            std::cout << "Heads up ===> Sent dynamic Map Boundaries to OMNeT++: X=" << boundary.value[0].x << ", Y=" << boundary.value[1].y << std::endl;
             std::cout << "\n";
             return Status::OK;
             

@@ -158,29 +158,28 @@ opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini
 
 === === === === === ===
 IF WE'RE DOING ANY CHANGE IN ANY FILE:
->> cd "/mnt/f/VEINS/veins-master"
+
+# 1. Initialize the OMNeT++ environment
+source /mnt/f/Omnet/omnetpp-6.2.0/setenv
+
+# 2. Build the project
+cd "/mnt/f/VEINS/veins-master"
 make MODE=release -j$(nproc)
 
 IF IT DOESN'T REFLECT THE CHANGES:
 Step 1: Set up the environment
-
-Bash
 source /mnt/f/Omnet/omnetpp-6.2.0/setenv
+
 Step 2: Go to the VEINS root directory
-
-Bash
 cd /mnt/f/VEINS/veins-master
+
 Step 3: Wipe the old cache (Do not skip this)  
-
-Bash
 make clean
+
 Step 4: Recompile the C++ code
-
-Bash
 make MODE=release -j$(nproc)
-Step 5: Run the simulation
 
-Bash
+Step 5: Run the simulation
 cd examples/veins
 opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini
 
@@ -201,6 +200,13 @@ SIGNALS MEANING
 1 = right signal blincking
 2 = lef signal blincking
 8 = break signal turned on
+
+Bitmask meaning in SUMO:
+Bit 0: Regard safe speed (don't crash into the car ahead).
+Bit 1: Regard maximum acceleration.
+Bit 2: Regard maximum speed of the road.
+Bit 3: Regard right-of-way at intersections.
+Bit 4: Regard traffic lights (stop at red lights).
 
 ========================================================================================================================================================
 ========================================================================================================================================================

@@ -47,6 +47,7 @@ public:
 protected:
     simtime_t lastDroveAt;
     bool sentMessage;
+    bool accidentResolved;
     int currentSubscribedServiceId;
 
 protected:

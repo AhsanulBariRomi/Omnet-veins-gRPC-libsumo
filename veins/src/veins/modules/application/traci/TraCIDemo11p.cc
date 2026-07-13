@@ -99,6 +99,7 @@ void TraCIDemo11p::onWSM(BaseFrame1609_4* frame)
         cmd.set_vehicle_id(mySumoId);
         cmd.set_set_speed(0.0);
         cmd.set_set_signals(8);
+        cmd.set_speed_mode(0);  //Force SUMO to bypass safety checks
         veins::TraCIScenarioManagerAccess().get()->addVehicleCommand(cmd);
         
         std::cout << " *** Car " << mySumoId << " received warning ==> Pushed BRAKE command to gRPC queue. ***" << std::endl;
@@ -150,8 +151,9 @@ void TraCIDemo11p::handlePositionUpdate(cObject* obj)
         // 1. Create a gRPC Command to stop myself!
         veinsthesis::VehicleCommand cmd;
         cmd.set_vehicle_id(mobility->getExternalId());
-        cmd.set_set_speed(0.0); // Slam the brakes!
-        cmd.set_set_signals(8); // Hazard lights!
+        cmd.set_set_speed(0.0); // Slam the brakes
+        cmd.set_set_signals(8); // Hazard lights
+        cmd.set_speed_mode(0);  // Force SUMO to bypass safety checks
         veins::TraCIScenarioManagerAccess().get()->addVehicleCommand(cmd);
         
         std::cout << "\n*** BOOM!!!! Car " << mobility->getExternalId() << " crashed at 73s, Pushed STOP to gRPC queue! ***\n" << std::endl;
@@ -193,11 +195,12 @@ void TraCIDemo11p::handlePositionUpdate(cObject* obj)
         accidentResolved = true; // Lock it so this only runs once
         findHost()->getDisplayString().setTagArg("i", 1, "blue"); // Turn icon back to green
         
-        // Push the Recovery Command!
+        // Push the Recovery Command
         veinsthesis::VehicleCommand cmd;
         cmd.set_vehicle_id(mobility->getExternalId());
         cmd.set_set_speed(-1.0); // -1.0 gives control back to the SUMO driver!
         cmd.set_set_signals(0);  // Turn off hazard lights
+        cmd.set_speed_mode(31);  // Give the brain back to SUMO - 31 is the defult mode for SUMO vehicles
         veins::TraCIScenarioManagerAccess().get()->addVehicleCommand(cmd);
         
         std::cout << "\n*** RECOVERY! Car " << mobility->getExternalId() << " resumed driving at " << simTime().dbl() << "s! ***\n" << std::endl;

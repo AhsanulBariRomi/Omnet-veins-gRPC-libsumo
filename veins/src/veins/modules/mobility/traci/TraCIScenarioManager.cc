@@ -809,6 +809,13 @@ void TraCIScenarioManager::executeOneTimestep()
         veinsthesis::StepRequest request;
         request.set_target_time(targetTime.dbl());
 
+        // ---> GRPC THESIS: PACK THE BATCHED COMMANDS <---
+        for (const auto& cmd : vehicleCommandBatch) {
+            veinsthesis::VehicleCommand* newCmd = request.add_vehicle_commands();
+            *newCmd = cmd;
+        }
+        vehicleCommandBatch.clear();
+
         // 2. Prepare the empty Response and Context
         veinsthesis::StepResponse response;
         grpc::ClientContext context;

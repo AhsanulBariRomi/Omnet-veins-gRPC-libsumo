@@ -45,8 +45,8 @@ Step3. Build the server
 	ii) Command in the WSL/Ubuntu
 	
 	>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/sumo_grpc_server/build"
-    >> cmake ..
-	>> make -j$(nproc)
+     cmake ..
+	 make -j$(nproc)
 	
 	
 Step4. Configure and Compile OMNeT++ & Veins (Linux/WSL)
@@ -153,7 +153,7 @@ cd "/mnt/f/Omnet/omnetpp-6.2.0"
 source setenv
 
 # 2. Go to the example folder and run the simulation
-cd examples/veins
+cd "/mnt/f/VEINS/veins-master/examples/veins"
 opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini
 
 === === === === === ===
@@ -178,6 +178,13 @@ make clean
 
 Step 4: Recompile the C++ code
 make MODE=release -j$(nproc)
+
+===
+source /mnt/f/Omnet/omnetpp-6.2.0/setenv
+cd /mnt/f/VEINS/veins-master
+make clean
+make MODE=release -j$(nproc)
+===
 
 Step 5: Run the simulation
 cd examples/veins

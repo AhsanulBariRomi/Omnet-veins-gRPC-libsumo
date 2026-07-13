@@ -51,6 +51,39 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
 
         //std::cout << "Step Requested for target time: " << request->target_time() << "s" << std::endl;
         
+        // ---> GRPC THESIS: UNPACK AND EXECUTE COMMANDS BEFORE STEPPING PHYSICS <---
+        for (const auto& cmd : request->vehicle_commands()) {
+            std::string vId = cmd.vehicle_id();
+            try {
+                if (cmd.has_set_speed()) {
+                    libsumo::Vehicle::setSpeed(vId, cmd.set_speed());
+                    std::cout << " *** [gRPC Server] Executed Brakes for " << vId << " (Speed set to " << cmd.set_speed() << ") *** " << std::endl;
+                }
+                if (cmd.has_speed_mode()) {
+                    libsumo::Vehicle::setSpeedMode(vId, cmd.speed_mode());
+                }
+                if (cmd.has_change_route()) {
+                    libsumo::Vehicle::setRouteID(vId, cmd.change_route());
+                }
+                if (cmd.has_change_lane()) {
+                    // SUMO changeLane signature: changeLane(vehicleID, laneIndex, duration)
+                    libsumo::Vehicle::changeLane(vId, cmd.change_lane(), 0.0);
+                }
+                if (cmd.has_set_signals()) {
+                    libsumo::Vehicle::setSignals(vId, cmd.set_signals());
+                }
+                if (cmd.has_stop_and_park() && cmd.stop_and_park()) {
+                    // Using setSpeed(0) is the most robust way to stop a car immediately
+                    libsumo::Vehicle::setSpeed(vId, 0.0);
+                }
+                if (cmd.has_remove_vehicle() && cmd.remove_vehicle()) {
+                    libsumo::Vehicle::remove(vId);
+                }
+            } catch (const std::exception& e) {
+                std::cerr << " [gRPC Server Warning] Tried to control vehicle " << vId << " but it is not in the network: " << e.what() << std::endl;
+            }
+        }
+
         // 1. STEP THE PHYSICS (Direct memory call, no TCP!)
         libsumo::Simulation::step(request->target_time());
 

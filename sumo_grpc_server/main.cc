@@ -26,6 +26,18 @@ using veinsthesis::BoundaryResponse;
 // The actual server logic
 class SumoServiceImpl final : public SumoCosimulation::Service {
 
+        // INITIALIZATION SIGNAL
+    Status InitializeSimulation(ServerContext* context, const veinsthesis::InitRequest* request, veinsthesis::InitResponse* response) override {
+        int32_t seed = request->seed();
+        std::cout << "Heads up ===> OMNeT++ requested initialization with SEED = " << seed << std::endl;
+        
+        // Start libsumo dynamically with the requested seed
+        libsumo::Simulation::start({"sumo", "-c", "erlangen.sumo.cfg", "--seed", std::to_string(seed)});
+        
+        response->set_success(true);
+        return Status::OK;
+    }
+
     Status GetNetworkBoundaries(ServerContext* context, const BoundaryRequest* request, BoundaryResponse* response) override {
         try {
             // 1. Ask libsumo for the actual map boundary box
@@ -191,7 +203,7 @@ class SumoServiceImpl final : public SumoCosimulation::Service {
          
         // Just cleanly close the current SUMO simulation and start a fresh one for the next run.
         libsumo::Simulation::close();
-        libsumo::Simulation::start({"sumo", "-c", "erlangen.sumo.cfg"});
+        //libsumo::Simulation::start({"sumo", "-c", "erlangen.sumo.cfg"});
         
         std::cout << "Heads up ===> SUMO has been reset and is ready for the next run..." << std::endl;
         
@@ -215,7 +227,8 @@ void RunServer() {
 
 int main(int argc, char** argv) {
     // Start libsumo in the background (we pass the sumo cfg file here)
-    libsumo::Simulation::start({"sumo", "-c", "erlangen.sumo.cfg"});
+    //libsumo::Simulation::start({"sumo", "-c", "erlangen.sumo.cfg"});
+    std::cout << "Starting gRPC server. Waiting for OMNeT++ to initialize SUMO with seed value..." << std::endl;
     RunServer();
     libsumo::Simulation::close();
     return 0;

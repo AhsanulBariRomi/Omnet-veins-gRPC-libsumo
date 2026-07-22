@@ -541,10 +541,25 @@ void TraCIScenarioManager::handleSelfMsg(cMessage* msg)
         stub_ = veinsthesis::SumoCosimulation::NewStub(channel);
         std::cout << "\nHEADS UP ====> gRPC Client Connected directly! Python Dummy Server is DEAD.\n" << std::endl;
         ///////////////////////////////////////////////////////////////////////////
-        //commandIfc.reset(new TraCICommandInterface(this, *connection, ignoreGuiCommands));
-        //init_traci();
-        // **FAKE THE INITIALIZATION SIGNAL**
-        // We do NOT call init_traci() anymore. We just tell OMNeT++ it's ready.
+        // =========================================================================
+        // ---> NEW: INITIALIZE SIMULATION WITH SEED BEFORE FETCHING BOUNDARIES <---
+        // =========================================================================
+        // Dynamically grab the current Run Number from OMNeT++ to use as the seed
+        const char* seed_s = cSimulation::getActiveSimulation()->getEnvir()->getConfigEx()->getVariable(CFGVAR_RUNNUMBER);
+        int32_t current_seed = seed_s ? atoi(seed_s) : 0;
+        
+        veinsthesis::InitRequest init_req;
+        init_req.set_seed(current_seed);
+        veinsthesis::InitResponse init_res;
+        grpc::ClientContext init_context;
+        
+        grpc::Status init_status = stub_->InitializeSimulation(&init_context, init_req, &init_res);
+        
+        if (!init_status.ok()) {
+            throw cRuntimeError("gRPC InitializeSimulation failed: %s", init_status.error_message().c_str());
+        }
+        std::cout << "HEADS UP ====> Successfully commanded SUMO to start with SEED = " << current_seed << std::endl;
+        // =========================================================================
 
         // ---> GRPC THESIS: FETCH DYNAMIC MAP BOUNDARIES <---
         // Instead of hardcoding the city offsets or relying on the old Python script,

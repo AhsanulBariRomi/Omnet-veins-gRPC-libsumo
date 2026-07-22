@@ -110,6 +110,14 @@ message PolygonResponse {
   repeated PolygonState polygons = 1;
 }
 
+// INITIALIZATION SIGNAL 
+message InitRequest {
+  int32 seed = 1;
+}
+message InitResponse {
+  bool success = 1;
+}
+
 // SERVER CLOSING SIGNAL 
 message CloseRequest {}
 message CloseResponse {}
@@ -123,4 +131,5 @@ service SumoCosimulation {
   rpc GetPolygons (PolygonRequest) returns (PolygonResponse);
 
   rpc CloseSimulation (CloseRequest) returns (CloseResponse);
+  rpc InitializeSimulation (InitRequest) returns (InitResponse);
 }

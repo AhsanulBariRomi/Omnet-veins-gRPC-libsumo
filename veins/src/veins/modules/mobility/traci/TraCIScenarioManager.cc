@@ -28,6 +28,7 @@
 #include <iterator>
 #include <cstdlib>
 #include <iomanip>
+#include <chrono>
 
 #include "veins/modules/mobility/traci/TraCIScenarioManager.h"
 #include "veins/base/connectionManager/ChannelAccess.h"
@@ -836,7 +837,30 @@ void TraCIScenarioManager::executeOneTimestep()
         grpc::ClientContext context;
 
         // 3. Fire the gRPC Call!
+        auto start_time = std::chrono::high_resolution_clock::now();
         grpc::Status status = stub_->ExecuteStep(&context, request, &response);
+        auto end_time = std::chrono::high_resolution_clock::now();
+        
+        auto rtt = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        // --- CUSTOM CSV LOGGER FOR GRPC RTT ---
+        static std::ofstream grpcRttFile;
+        static bool isFileOpen = false;
+        if (!isFileOpen) {
+            std::string timeLimitStr = "unknown";
+            // Dynamically read the sim-time-limit from the omnetpp.ini file
+            const char* val = cSimulation::getActiveSimulation()->getEnvir()->getConfig()->getConfigValue("sim-time-limit");
+            if (val) timeLimitStr = val;
+            
+            std::string filename = "grpc_RTT_" + timeLimitStr + ".csv";
+            grpcRttFile.open(filename, std::ios_base::out);
+            grpcRttFile << "SimulationTime(s),RTT(us),VehicleCount\n"; // Write CSV Header
+            isFileOpen = true;
+            std::cout << "HEADS UP ====> Created gRPC RTT Logger: " << filename << std::endl;
+        }
+        
+        // Write the data to the CSV
+        grpcRttFile << targetTime.dbl() << "," << rtt << "," << response.vehicles_size() << "\n";
+        // ---------------------------------------
 
         // 4. Process the Bulk Data
         if (status.ok()) {
@@ -959,8 +983,8 @@ void TraCIScenarioManager::executeOneTimestep()
             }
             // 4c. Print the true count with the Step Time!
             //std::cout << "Step " << targetTime.dbl() << "s | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
-            std::cout << "Step " << targetTime.str() << " | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
-            std::cout << "\n";
+            //std::cout << "Step " << targetTime.str() << " | OMNeT++ total Cars on Map: " << hosts.size() << std::endl;
+            //std::cout << "\n";
         } else {
             //EV_ERROR << "gRPC step failed: " << status.error_message() << endl;
             std::cerr << "ERROR: =====> Step " << targetTime.dbl() << "s | gRPC step failed: " << status.error_message() << std::endl;
@@ -976,9 +1000,9 @@ void TraCIScenarioManager::executeOneTimestep()
         grpc::Status tlStatus = stub_->GetTrafficLights(&tlContext, tlReq, &tlRes);
         
         if (tlStatus.ok()) {
-            std::cout << "=============================================================" << std::endl;
-            std::cout << "Head Up ====> Traffic light Fetched " << tlRes.traffic_lights_size() << " Traffic Lights." << std::endl;
-            std::cout << "=============================================================" << std::endl;
+            //std::cout << "=============================================================" << std::endl;
+            //std::cout << "Head Up ====> Traffic light Fetched " << tlRes.traffic_lights_size() << " Traffic Lights." << std::endl;
+            //std::cout << "=============================================================" << std::endl;
             for (const auto& tl : tlRes.traffic_lights()) {
                 // Find the traffic light in Veins and update its state
                 // 1. Check if this traffic light actually exists in the OMNeT++ map

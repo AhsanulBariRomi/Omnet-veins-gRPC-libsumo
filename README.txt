@@ -29,7 +29,8 @@ Step1. Open the WSL/Ubuntu terminal. and go to the root folder.
 Step2. Compile the Blueprints (the proto file)
 
 	>> cd grpc_proto
-	>> protoc --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=$(which grpc_cpp_plugin) sumo_cosimulation.proto
+	(NOT WORKING)>> protoc --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=$(which grpc_cpp_plugin) sumo_cosimulation.proto (NOT WORKING)
+	>> protoc -I=. --experimental_allow_proto3_optional --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` sumo_cosimulation.proto
 	>> cp sumo_cosimulation*.h sumo_cosimulation*.cc ../sumo_grpc_server/
 	>> cp sumo_cosimulation*.h sumo_cosimulation*.cc ../veins/src/veins/modules/mobility/traci/
 	>> cd ..
@@ -106,7 +107,7 @@ Step5. The final test - THe dual terminal Test
 		
 		>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins"
 		 python3 sumo-launchd.py -vv -c /home/mdahsanulbari/sumo/bin/sumo
-
+	=============================================================================== Terminal 3 is not required anymore, the dummy server is fully replaced
 	Terminal 2: The Custom gRPC Server (C++)
 		Purpose: Runs the actual SUMO simulation and feeds data via gRPC.
 		
@@ -128,6 +129,10 @@ Step5. The final test - THe dual terminal Test
 		For GUI:
 		cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
 		./run -u Qtenv
+		
+		For MultiSeed:
+		cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
+		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Evaluation_Seeds
 
 Expected Result: Terminal 3 will print >>>> FORCING gRPC CONNECTION <<<<, and Terminal 2 will immediately begin printing the "Step Requested" logs all the way up to the simulation limit of 200s.
 
@@ -155,6 +160,11 @@ source setenv
 # 2. Go to the example folder and run the simulation
 cd "/mnt/f/VEINS/veins-master/examples/veins"
 opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini
+
+FOR SEED RUN:
+# 2. Go to the example folder and run the simulation
+cd "/mnt/f/VEINS/veins-master/examples/veins"
+opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Evaluation_Seeds
 
 === === === === === ===
 IF WE'RE DOING ANY CHANGE IN ANY FILE:

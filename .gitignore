@@ -31,3 +31,11 @@ Makefile
 makefrag
 veins/src/veins/modules/messages/*_m.cc
 veins/src/veins/modules/messages/*_m.h
+
+# ---------------------------------------------------
+# OMNeT++ / Veins Specific Build Junk
+# ---------------------------------------------------
+Event_Log_meaning.txt
+Folder structure.txt
+Working phase.txt
+Removing the python launched.docx

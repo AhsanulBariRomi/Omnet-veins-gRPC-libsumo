@@ -133,7 +133,13 @@ Step5. The final test - THe dual terminal Test
 		For MultiSeed:
 		cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
 		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Evaluation_Seeds
-
+		
+		# 2. FOR SIMULATION THROUGHPUT:
+		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Throughput_Evaluation
+		
+		# 2. FOR THROUGHPUT CSV STORE:
+		opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Throughput_Evaluation | awk '/100% completed/ { gsub(/t=/, "", $4); gsub(/s/, "", $6); print $4 "," $6 }' > grpc_throughput.csv
+		
 Expected Result: Terminal 3 will print >>>> FORCING gRPC CONNECTION <<<<, and Terminal 2 will immediately begin printing the "Step Requested" logs all the way up to the simulation limit of 200s.
 
 ****************************************
@@ -165,6 +171,12 @@ FOR SEED RUN:
 # 2. Go to the example folder and run the simulation
 cd "/mnt/f/VEINS/veins-master/examples/veins"
 opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Evaluation_Seeds
+
+# 2. FOR SIMULATION THROUGHPUT:
+opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Throughput_Evaluation
+
+# 2. FOR THROUGHPUT CSV STORE:
+opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Throughput_Evaluation | awk '/100% completed/ { gsub(/t=/, "", $4); gsub(/s/, "", $6); print $4 "," $6 }' > grpc_throughput.csv
 
 === === === === === ===
 IF WE'RE DOING ANY CHANGE IN ANY FILE:

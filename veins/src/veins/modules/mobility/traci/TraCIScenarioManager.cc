@@ -842,7 +842,11 @@ void TraCIScenarioManager::executeOneTimestep()
         auto end_time = std::chrono::high_resolution_clock::now();
         
         auto rtt = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-        // --- CUSTOM CSV LOGGER FOR GRPC RTT ---
+        
+        // ---> NEW 3RD METRIC: NETWORK PAYLOAD SIZE <---
+        size_t payloadSize = response.ByteSizeLong();
+        
+        // --- CUSTOM CSV LOGGER FOR GRPC RTT & PAYLOAD ---
         static std::ofstream grpcRttFile;
         static bool isFileOpen = false;
         if (!isFileOpen) {
@@ -853,13 +857,13 @@ void TraCIScenarioManager::executeOneTimestep()
             
             std::string filename = "grpc_RTT_" + timeLimitStr + ".csv";
             grpcRttFile.open(filename, std::ios_base::out);
-            grpcRttFile << "SimulationTime(s),RTT(us),VehicleCount\n"; // Write CSV Header
+            grpcRttFile << "SimulationTime(s),RTT(us),VehicleCount,PayloadSize(Bytes)\n"; // Write CSV Header
             isFileOpen = true;
             std::cout << "HEADS UP ====> Created gRPC RTT Logger: " << filename << std::endl;
         }
         
         // Write the data to the CSV
-        grpcRttFile << targetTime.dbl() << "," << rtt << "," << response.vehicles_size() << "\n";
+        grpcRttFile << targetTime.dbl() << "," << rtt << "," << response.vehicles_size() << "," << payloadSize << "\n";
         // ---------------------------------------
 
         // 4. Process the Bulk Data

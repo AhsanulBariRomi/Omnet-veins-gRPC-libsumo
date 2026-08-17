@@ -155,7 +155,6 @@ LEGACY TRACI RUN
 ===========================================================================================================================================================
 Step 1: Start the Python Bridge (Terminal 1) - LEGACY SERVER
 >> cd "/mnt/f/VEINS/veins-master"
-   python3 sumo-launchd.py -vv -c sumo
 
 Step 2: Run the Simulation (Terminal 2) - LEGACY CLIENT
 
@@ -176,7 +175,7 @@ opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Evaluat
 opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Throughput_Evaluation
 
 # 2. FOR THROUGHPUT CSV STORE:
-opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Throughput_Evaluation | awk '/100% completed/ { gsub(/t=/, "", $4); gsub(/s/, "", $6); print $4 "," $6 }' > grpc_throughput.csv
+opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini -c Throughput_Evaluation | awk '/100% completed/ { gsub(/t=/, "", $4); gsub(/s/, "", $6); print $4 "," $6 }' > traci_throughput.csv
 
 === === === === === ===
 IF WE'RE DOING ANY CHANGE IN ANY FILE:
@@ -261,15 +260,40 @@ Also we must make sure to make WITH_QTENV = yes in the configure.use file in (F:
 
 
 
+======================================================================================================================================================
+======================================================================================================================================================
+TCP Dump for wireshark (Traci)
+------------------------------
+Step 1: Install tcpdump in WSL
+>> sudo apt-get update
+sudo apt-get install tcpdump
 
+Step 2: Start the Packet Capture (Terminal 1) We need to listen to the loopback interface (lo, which is localhost) and capture everything on the TraCI port (9999). Run this command and let it run:
+>> cd "/mnt/f/VEINS/veins-master"
+sudo tcpdump -i lo port 9999 -w traci_0_cars.pcap
 
+Step 3: Run the Empty Simulation (Terminal 2) Open a second WSL terminal. Make sure your erlangen.rou.xml is set to spawn 0 cars. Then run your TraCI simulation:
+>> opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini --sim-time-limit=20s
 
+Step 4: Stop the Capture & Analyze Go back to Terminal 1 and press Ctrl+C to stop the sniffer. You now have a file called traci_0_cars.pcap.
 
+Step 5: See the True Overhead If you have Wireshark installed on your Windows machine, you can simply double-click that .pcap file to open it.
 
+Go to Statistics -> Capture File Properties.
+Look at the "Bytes" measurement
 
+TCP Dump for wireshark (GRPC)
+-----------------------------
+Step 1: Set 0 Cars Open f:\4. Academic(MSc)\Thesis\Comparison\Thesis-veins-with-gRPC\veins\examples\veins\erlangen.rou.xml and make sure it is set to number="0".
 
+Step 2: Start the Sniffer (Terminal 1) Open a WSL terminal and start listening to the gRPC port (50051).
+>> cd "/mnt/f/4. Academic(MSc)/Thesis/Thesis-veins-with-gRPC/veins/examples/veins"
+sudo tcpdump -i lo port 50051 -w grpc_0_cars_test.pcap
 
+Step 3: Start your gRPC Server (Terminal 2) Open a second WSL terminal, navigate to your sumo_grpc_server/build directory, and run your server:
 
+Step 4: Run the OMNeT++ Client (Terminal 3) Open a third WSL terminal, navigate to your gRPC examples/veins folder, and run the simulation:
+>> opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini --sim-time-limit=20s
 
 
 

@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package veinsthesis;
+
+// ====================================================================
+// COMMAND STRUCTURES (OMNeT++ -> SUMO)
+// ====================================================================
+// Represents the state update OMNeT++ wants to apply to a vehicle.
+// By using 'optional', we can efficiently pack multiple commands for the same car 
+// (e.g. speed and lane change) into a single tiny message. Although, oneof is the gold standard 
+// for microservice communication but not suitable in this scenerio 
+message VehicleCommand {
+  string vehicle_id = 1;
+  
+  optional double set_speed = 2;          // Force speed in m/s
+  optional int32 speed_mode = 3;          // SUMO bitmask for safety checks (0=dangerous, 31=safe)
+  optional string change_route = 4;       // SUMO route ID for rerouting
+  optional int32 change_lane = 5;         // Target lane index (0 is rightmost lane)
+  optional int32 set_signals = 6;         // Integer bitmask for turn signals/brake lights
+  optional bool stop_and_park = 7;        // True to stop the vehicle
+  optional bool remove_vehicle = 8;       // True to delete the vehicle from the simulation
+}
+// Data needed to inject a completely new vehicle dynamically
+message SpawnVehicleCommand {
+  string vehicle_id = 1;
+  string vehicle_type = 2;
+  string route_id = 3;
+  double initial_speed = 4;
+  int32 initial_lane = 5;
+}
+
+// This is the OMNeT++ Request -> asking SUMO to step forward AND execute batched commands
+message StepRequest {
+  double target_time = 1; // The simulation time OMNeT++ wants to advance to
+
+  repeated VehicleCommand vehicle_commands = 2;
+  repeated SpawnVehicleCommand spawn_commands = 3;
+}
+
+// ====================================================================
+// STATE STRUCTURES (SUMO -> OMNeT++)
+// ====================================================================
+// The Blueprint (TraCI used to subscribe) -> 10 variables for a single car
+message VehicleState {
+  string vehicle_id = 1; // Unique identifier for the vehicle (e.g., "flow0.0")
+  double position_x = 2;
+  double position_y = 3;
+  double speed = 4;      // Current velocity of the vehicle in meters per second (m/s)
+  double angle = 5;      // Heading/direction of the vehicle in degrees (0-360)
+  string road_id = 6;    // The SUMO ID of the current road/edge the vehicle is driving on
+  int32 lane_index = 14; // The specific lane the vehicle is in (0 = right)
+  double length = 7;     // Physical length of the vehicle in meters (used for drawing and bounding boxes)
+  double width = 8;      // Physical width of the vehicle in meters
+  double height = 9;     // Physical height of the vehicle in meters (crucial for accurate 3D radio occlusion)
+  int32 signals = 10;    // Integer bitmask representing active vehicle signals (e.g., turn signals, brake lights)
+
+  string vehicle_type = 11;  // The class/type of the vehicle (e.g., "passenger", "bus")
+  double position_z = 12;    // The elevation/slope of the vehicle
+
+  double acceleration = 13;  // Current acceleration in m/s^2
+}
+
+// The response -> Master list of all cars
+message StepResponse {
+  repeated VehicleState vehicles = 1;
+}
+
+// The Request -> Empty because OMNeT++ just wants the global map offsets
+message BoundaryRequest {
+}
+
+// The Response -> SUMO sends back the minimum X and Y of the map
+message BoundaryResponse {
+  double offset_x = 1;
+  double offset_y = 2;
+}
+
+// ====================================================================
+// ENVIRONMENT DATA STRUCTURES
+// ====================================================================
+// The Request -> Empty because OMNeT++ just wants the master list of all traffic lights
+message TrafficLightRequest {
+}
+// The Blueprint -> Represents a single traffic light intersection
+message TrafficLightState {
+  string tl_id = 1;  // Unique identifier for the traffic light (e.g., "cluster_1_2")
+  string state = 2;  // A string of characters representing the phase of each lane (e.g., "GrGr" means Green for lane 1, Red for lane 2)
+}
+// The Response -> Master list of all traffic lights and their current colors
+message TrafficLightResponse {
+  repeated TrafficLightState traffic_lights = 1;
+}
+
+// The Request -> Empty because OMNeT++ just wants the master list of all map polygons
+message PolygonRequest {
+}
+// A helper blueprint -> Represents a single X/Y coordinate for building a shape
+message Point2D {
+  double x = 1;
+  double y = 2;
+}
+// The Blueprint -> Represents a single static obstacle (like a building or lake)
+message PolygonState {
+  string poly_id = 1;        // Unique identifier for the polygon
+  string type = 2;           // The category of the polygon (e.g., "building", "water", "forest")
+  repeated Point2D shape = 3;// A list of X/Y coordinates that draw the outline of the obstacle
+}
+// The Response -> Master list of all polygons on the SUMO map
+message PolygonResponse {
+  repeated PolygonState polygons = 1;
+}
+
+// INITIALIZATION SIGNAL 
+message InitRequest {
+  int32 seed = 1;
+}
+message InitResponse {
+  bool success = 1;
+}
+
+// SERVER CLOSING SIGNAL 
+message CloseRequest {}
+message CloseResponse {}
+
+// The gRPC Service
+service SumoCosimulation {
+  rpc ExecuteStep (StepRequest) returns (StepResponse);
+  rpc GetNetworkBoundaries (BoundaryRequest) returns (BoundaryResponse);
+
+  rpc GetTrafficLights (TrafficLightRequest) returns (TrafficLightResponse);
+  rpc GetPolygons (PolygonRequest) returns (PolygonResponse);
+
+  rpc CloseSimulation (CloseRequest) returns (CloseResponse);
+  rpc InitializeSimulation (InitRequest) returns (InitResponse);
+}

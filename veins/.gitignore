@@ -19,6 +19,8 @@ examples/**/.tkenvrc
 examples/**/.qtenvrc
 examples/**/.cmdenv-log
 examples/**/valgrind.out
+examples/**/*.csv
+examples/**/*.pcap
 
 subprojects/veins_catch/compile_commands.json
 subprojects/veins_catch/.cache/

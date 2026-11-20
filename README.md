@@ -129,11 +129,6 @@ make -j$(nproc)
 ```
 *This produces the executable binary: `$THESIS_ROOT/sumo_grpc_server/build/server`.*
 
-> [!TIP]
-> If your `libsumo` headers or binaries are in a custom location, ensure your `SUMO_HOME` environment variable is exported or specify it during CMake configuration:
-> ```bash
-> cmake -DSUMO_HOME=/path/to/sumo ..
-> ```
 
 ### Step 4: Configure and Compile Modified Veins
 Ensure the gRPC and Protobuf libraries are linked into the Veins dynamic library (`libveins.so`).
@@ -239,49 +234,6 @@ Measures pure real-world CPU and system execution time:
 ```bash
 /usr/bin/time -p opp_run -u Cmdenv -l ../../src/veins -n .:../../src/veins omnetpp.ini --sim-time-limit=1600s
 ```
-
----
-
-## Summary of gRPC Services & Command Structures
-
-The gRPC contract defined in [`grpc_proto/sumo_cosimulation.proto`](grpc_proto/sumo_cosimulation.proto) defines dedicated RPC endpoints and bundles per-timestep operations into batched messages:
-
-### 1. gRPC Service Endpoints (RPCs)
-| RPC Method | Input $\rightarrow$ Output | Description |
-| :--- | :--- | :--- |
-| `InitializeSimulation` | `InitRequest` $\rightarrow$ `InitResponse` | Passes SUMO configuration/seed and initiates the `libsumo` session |
-| `GetNetworkBoundaries` | `BoundaryRequest` $\rightarrow$ `BoundaryResponse` | Fetches map bounding box ($X_{\min}, Y_{\min}, X_{\max}, Y_{\max}$) for playground sizing |
-| `GetTrafficLights` | `TrafficLightRequest` $\rightarrow$ `TrafficLightResponse` | Fetches active traffic light IDs and current lane phase states |
-| `GetPolygons` | `PolygonRequest` $\rightarrow$ `PolygonResponse` | Fetches static obstacles/buildings for radio shadowing |
-| `ExecuteStep` | `StepRequest` $\rightarrow$ `StepResponse` | **Core Co-Simulation Step:** Advances SUMO by $\Delta t$, applies all batched commands, and returns active vehicle states |
-| `CloseSimulation` | `CloseRequest` $\rightarrow$ `CloseResponse` | Gracefully closes the simulation session and releases memory |
-
-### 2. Batched Step Payloads (`ExecuteStep`)
-Rather than sending individual commands per vehicle (which caused high IPC latency in legacy TraCI), all operations per timestep are batched inside `ExecuteStep`:
-
-* **`StepRequest` (OMNeT++ $\rightarrow$ Server):**
-  * `target_time`: The simulation timestamp OMNeT++ requests SUMO to advance to.
-  * `vehicle_commands` (`repeated VehicleCommand`): Batched updates for speed, speed mode (safety bitmask), route changes, lane changes, turn signals, and vehicle removals.
-  * `spawn_commands` (`repeated SpawnVehicleCommand`): Batched requests to dynamically inject new vehicles with specified routes and speeds.
-* **`StepResponse` (Server $\rightarrow$ OMNeT++):**
-  * `vehicles` (`repeated VehicleState`): Complete active vehicle states returned directly from SUMO memory (Position $X, Y$, Speed, Heading Angle, Road ID, Signals).
-
----
-
-## Troubleshooting & FAQs
-
-* **Issue: `opp_run: command not found`**  
-  *Solution:* Ensure you have sourced the OMNeT++ environment in your current shell: `source /path/to/omnetpp-6.2.0/setenv`.
-
-* **Issue: Server crashes with `libsumocpp.so: cannot open shared object file`**  
-  *Solution:* Add the SUMO library folder to your dynamic linker path:
-  ```bash
-  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SUMO_HOME/bin
-  sudo ldconfig
-  ```
-
-* **Issue: GUI Simulation (`Qtenv`) fails to start**  
-  *Solution:* By default, headless (`Cmdenv`) is recommended for benchmarking. If graphical interface is required, ensure Qt6 libraries are installed (`qt6-base-dev`), set `WITH_QTENV=yes` in OMNeT++'s `configure.user`, recompile OMNeT++, and run `./run -u Qtenv`.
 
 ---
 
